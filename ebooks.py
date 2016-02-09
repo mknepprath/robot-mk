@@ -122,13 +122,12 @@ if __name__=="__main__":
                 else:
                     print "TOO SIMILAR: " + ebook_tweet
                     sys.exit()
-
-            #throw out tweets that end with "by on"
-            if "by on" not in ebook_tweet:
-                continue
-            else:
-                print "DRIBBBLE TWEET: " + ebook_tweet
-                sys.exit()
+                #throw out tweets that end with "by on"
+                if "by on" not in ebook_tweet:
+                    continue
+                else:
+                    print "DRIBBBLE TWEET: " + ebook_tweet
+                    sys.exit()
 
             if DEBUG == False:
                 status = api.PostUpdate(ebook_tweet)
