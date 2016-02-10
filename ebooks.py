@@ -114,8 +114,6 @@ if __name__=="__main__":
                 print "ALL THE THINGS"
                 ebook_tweet = ebook_tweet.upper()
 
-        ebook_tweet += ' by on...'
-
         #throw out tweets that match anything from the source account.
         if ebook_tweet != None and len(ebook_tweet) < 110:
             for tweet in source_tweets:
@@ -127,6 +125,9 @@ if __name__=="__main__":
 
             #throw out tweets that end with "by on"
             if "by on" in ebook_tweet:
+                print "DRIBBBLE TWEET: " + ebook_tweet
+                sys.exit()
+            if "by for on" in ebook_tweet:
                 print "DRIBBBLE TWEET: " + ebook_tweet
                 sys.exit()
 
