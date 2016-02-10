@@ -123,7 +123,6 @@ if __name__=="__main__":
                     print "TOO SIMILAR: " + ebook_tweet
                     sys.exit()
 
-
             #throw out tweets that end with "by on"
             if "by on" in ebook_tweet:
                 print "DRIBBBLE TWEET: " + ebook_tweet
