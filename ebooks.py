@@ -70,6 +70,7 @@ if __name__=="__main__":
             for item in string_list:
                 source_tweets = item.split(",")
         else:
+            #gets tweets
             source_tweets = []
             for handle in SOURCE_ACCOUNTS:
                 user=handle
