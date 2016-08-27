@@ -92,7 +92,6 @@ def grab_tweets(api, max_id=None):
 
 if __name__ == "__main__":
     tweeter = TwitterAPI()
-    tweeter.tweet('test!')
     order = ORDER
     if not DEBUG:
         guess = random.choice(range(ODDS))
