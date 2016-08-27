@@ -80,6 +80,7 @@ def grab_tweets(twitter, max_id=None):
     return source_tweets, max_id
 
 if __name__ == "__main__":
+    twitter = TwitterAPI()
     order = ORDER
     if not DEBUG:
         guess = random.choice(range(ODDS))
@@ -95,7 +96,6 @@ if __name__ == "__main__":
         source_tweets = []
         for handle in SOURCE_ACCOUNTS:
             user = handle
-            twitter = TwitterAPI()
             max_id = None
             for x in range(17)[1:]:
                 source_tweets_iter, max_id = grab_tweets(twitter, max_id)
