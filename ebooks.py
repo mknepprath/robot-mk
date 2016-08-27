@@ -86,27 +86,24 @@ if __name__ == "__main__":
     else:
         guess = 0
 
+    twitter.api.create_favorite(
+        id=732607089579675648
+    )
+
     if guess == 0:
-        if STATIC_TEST:
-            file = TEST_SOURCE
-            print ">>> Generating from {0}".format(file)
-            string_list = open(file).readlines()
-            for item in string_list:
-                source_tweets = item.split(",")
-        else:
-            #gets tweets
-            source_tweets = []
-            for handle in SOURCE_ACCOUNTS:
-                user = handle
-                twitter = TwitterAPI()
-                max_id = None
-                for x in range(17)[1:]:
-                    source_tweets_iter, max_id = grab_tweets(twitter, max_id)
-                    source_tweets += source_tweets_iter
-                print "{0} tweets found in {1}".format(len(source_tweets), handle)
-                if len(source_tweets) == 0:
-                    print "Error fetching tweets from Twitter. Aborting."
-                    sys.exit()
+        #gets tweets
+        source_tweets = []
+        for handle in SOURCE_ACCOUNTS:
+            user = handle
+            twitter = TwitterAPI()
+            max_id = None
+            for x in range(17)[1:]:
+                source_tweets_iter, max_id = grab_tweets(twitter, max_id)
+                source_tweets += source_tweets_iter
+            print "{0} tweets found in {1}".format(len(source_tweets), handle)
+            if len(source_tweets) == 0:
+                print "Error fetching tweets from Twitter. Aborting."
+                sys.exit()
         mine = markov.MarkovChainer(order)
         for tweet in source_tweets:
             if re.search('([\.\!\?\"\']$)', tweet):
