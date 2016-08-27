@@ -82,6 +82,7 @@ def grab_tweets(tweep, max_id=None):
     )
     max_id = tweep_tweets[len(tweep_tweets)-1].id-1
     for tweet in tweep_tweets:
+        print tweet
         tweet.text = filter_tweet(tweet)
         if len(tweet.text) != 0:
             source_tweets.append(tweet.text)
