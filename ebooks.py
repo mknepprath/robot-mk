@@ -73,6 +73,7 @@ if __name__=="__main__":
             for handle in SOURCE_ACCOUNTS:
                 user=handle
                 api=connect()
+                print(api.VerifyCredentials())
                 max_id=None
                 for x in range(17)[1:]:
                     source_tweets_iter, max_id = grab_tweets(api,max_id)
