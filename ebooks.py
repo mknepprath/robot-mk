@@ -87,11 +87,11 @@ if __name__ == "__main__":
     else:
         guess = 0
 
-    TEST_TWEET_ID = 732607089579675648
-    if not twitter.api.get_status(id=TEST_TWEET_ID).favorited:
-        twitter.api.create_favorite(id=TEST_TWEET_ID)
-    else:
-        twitter.api.destroy_favorite(id=TEST_TWEET_ID)
+    # TEST_TWEET_ID = 732607089579675648
+    # if not twitter.api.get_status(id=TEST_TWEET_ID).favorited:
+    #     twitter.api.create_favorite(id=TEST_TWEET_ID)
+    # else:
+    #     twitter.api.destroy_favorite(id=TEST_TWEET_ID)
 
     if guess == 0:
         #gets tweets
