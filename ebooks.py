@@ -12,11 +12,11 @@ from local_settings import *
 class TwitterAPI:
     """Class for accessing the Twitter API."""
     def __init__(self):
-        consumer_key = os.environ.get('MY_CONSUMER_KEY')
-        consumer_secret = os.environ.get('MY_CONSUMER_SECRET')
+        consumer_key = MY_CONSUMER_KEY
+        consumer_secret = MY_CONSUMER_SECRET
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        access_token = os.environ.get('MY_ACCESS_TOKEN')
-        access_token_secret = os.environ.get('MY_ACCESS_TOKEN_SECRET')
+        access_token = MY_ACCESS_TOKEN
+        access_token_secret = MY_ACCESS_TOKEN_SECRET
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth, wait_on_rate_limit=True)
 
