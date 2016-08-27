@@ -3,7 +3,6 @@ import os
 import random
 import re
 import sys
-import pprint
 from htmlentitydefs import name2codepoint as n2c
 import tweepy
 import markov
@@ -82,14 +81,15 @@ def grab_tweets(twitter, max_id=None):
 
 if __name__ == "__main__":
     twitter = TwitterAPI()
-    pp = pprint.PrettyPrinter(indent=4)
     order = ORDER
     if not DEBUG:
         guess = random.choice(range(ODDS))
     else:
         guess = 0
 
-    pp.pprint(twitter.api.get_status(id=732607089579675648))
+    print twitter.api.get_status(
+        id=732607089579675648
+    ).favorited
 
     # twitter.api.create_favorite(
     #     id=732607089579675648
