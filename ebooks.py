@@ -79,6 +79,20 @@ def grab_tweets(twitter, max_id=None):
                 source_tweets.append(tweet.text)
     return source_tweets, max_id
 
+def grab_mentions(twitter, max_id=None):
+    """Gets mentions of @robot_mk."""
+    source_mentions = []
+    mention_tweets = twitter.api.mentions_timeline(
+        count=200,
+        max_id=max_id
+    )
+    max_id = mention_tweets[len(mention_tweets)-1].id-1
+    for tweet in mention_tweets:
+        tweet.text = filter_tweet(tweet)
+        if len(tweet.text) != 0:
+            source_mentions.append(tweet.text)
+    return source_mentions, max_id
+
 if __name__ == "__main__":
     twitter = TwitterAPI()
     order = ORDER
@@ -92,6 +106,18 @@ if __name__ == "__main__":
     #     twitter.api.create_favorite(id=TEST_TWEET_ID)
     # else:
     #     twitter.api.destroy_favorite(id=TEST_TWEET_ID)
+
+    source_mentions = []
+    for handle in SOURCE_ACCOUNTS:
+        user = handle
+        max_id = None
+        for x in range(17)[1:]:
+            source_mentions_iter, max_id = grab_mentions(twitter, max_id)
+            source_mentions += source_mentions_iter
+        print "{0} mentions found in {1}".format(len(source_mentions), handle)
+        if len(source_mentions) == 0:
+            print "Error fetching tweets from Twitter. Aborting."
+            sys.exit()
 
     if guess == 0:
         #gets tweets
