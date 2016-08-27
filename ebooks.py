@@ -87,9 +87,11 @@ if __name__ == "__main__":
     else:
         guess = 0
 
-    print twitter.api.get_status(
-        id=732607089579675648
-    )
+    # print twitter.api.get_status(
+    #     id=732607089579675648
+    # )
+
+    echo twitter.api.get_status(id=732607089579675648) | python -m json.tool
 
     # twitter.api.create_favorite(
     #     id=732607089579675648
