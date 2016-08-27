@@ -1,10 +1,37 @@
+import os
 import random
 import re
 import sys
+import tweepy
 import twitter
 import markov
 from htmlentitydefs import name2codepoint as n2c
 from local_settings import *
+
+class TwitterAPI:
+    """
+    Class for accessing the Twitter API.
+
+    Requires API credentials to be available in environment
+    variables. These will be set appropriately if the bot was created
+    with init.sh included with the heroku-twitterbot-starter
+    """
+    def __init__(self):
+        consumer_key = os.environ.get('MY_CONSUMER_KEY')
+        consumer_secret = os.environ.get('MY_CONSUMER_SECRET')
+        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        access_token = os.environ.get('MY_ACCESS_TOKEN')
+        access_token_secret = os.environ.get('MY_ACCESS_TOKEN_SECRET')
+        auth.set_access_token(access_token, access_token_secret)
+        self.api = tweepy.API(auth, wait_on_rate_limit=True)
+
+    def tweet(self, message):
+        """Send a tweet"""
+        self.api.update_status(status=message)
+
+    def reply(self, message, tweet_id):
+        """Reply to a tweet"""
+        self.api.update_status(status=message, in_reply_to_status_id=tweet_id)
 
 def connect():
     api = twitter.Api(consumer_key=MY_CONSUMER_KEY,
