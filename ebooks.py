@@ -73,8 +73,8 @@ def grab_tweets(twitter, max_id=None):
     )
     max_id = user_tweets[len(user_tweets)-1].id-1
     for tweet in user_tweets:
-        print tweet.text[0][0]
         if tweet.text[0][0] is not '@':
+            print tweet.text[0][0]
             tweet.text = filter_tweet(tweet)
             if len(tweet.text) != 0:
                 source_tweets.append(tweet.text)
@@ -156,7 +156,7 @@ if __name__ == "__main__":
                 sys.exit()
 
             if not DEBUG:
-                tweep.tweet(ebook_tweet)
+                twitter.tweet(ebook_tweet)
 
             print ebook_tweet
 
