@@ -2,12 +2,6 @@
 Local Settings for robot_mk.
 '''
 
-#configuration
-MY_CONSUMER_KEY = '8HxU5fe5j56VP3jfTJAN7bA2F'
-MY_CONSUMER_SECRET = 'oOeVMCLjNfEJwNUPxbMaMgyjhEHNFZQsjgZZFu0gdXGyh5l3XQ'
-MY_ACCESS_TOKEN_KEY = '4870777744-3mXMIIhgWWVkq6nA8PjKymsxRJ3htALDivZHzRK'
-MY_ACCESS_TOKEN_SECRET = 'w6xEXy5Un99p0dve3vfmmrI87hMw3DDqcU6Tnf5Ccsp13'
-
 SOURCE_ACCOUNTS = ["mknepprath"] #A list of comma-separated, quote-enclosed Twitter handles of account that you'll generate tweets based on. It should look like ["account1", "account2"]. If you want just one account, no comma needed.
 ODDS = 2 #How often do you want this to run? 1/8 times?
 ORDER = 2 #how closely do you want this to hew to sensical? 1 is low and 3 is high.

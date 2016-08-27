@@ -167,10 +167,9 @@ if __name__ == "__main__":
                 sys.exit()
 
             if not DEBUG:
-                status = tweep.tweet(ebook_tweet)
-                print status.text.encode('utf-8')
-            else:
-                print ebook_tweet
+                tweep.tweet(ebook_tweet)
+                
+            print ebook_tweet
 
         elif ebook_tweet is None:
             print "Tweet is empty, sorry."
