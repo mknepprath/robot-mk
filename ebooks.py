@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     source_mentions = twitter.api.mentions_timeline(count=5)
     for mention in source_mentions:
-        if random.choice(range(ODDS)) == 0:
+        if random.choice(range(FAVE_ODDS)) == 0:
             if not twitter.api.get_status(id=mention.id).favorited:
                 twitter.api.create_favorite(id=mention.id)
                 print 'Favorited \'' + mention.text + '\''
