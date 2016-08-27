@@ -116,28 +116,43 @@ if __name__ == "__main__":
                 twitter.api.create_favorite(id=mention.id)
                 print 'Favorited \'' + mention.text + '\''
 
-    source_replies = []
-    for handle in SOURCE_ACCOUNTS:
-        user = handle
-        max_id = None
-        for x in range(17)[1:]:
-            source_replies_iter, max_id = grab_replies(twitter, max_id)
-            source_replies += source_replies_iter
-        print "{0} replies found in {1}".format(len(source_replies), handle)
-        if len(source_replies) == 0:
-            print "Error fetching replies from Twitter. Aborting."
-            sys.exit()
-    mine = markov.MarkovChainer(order)
-    for reply in source_replies:
-        if re.search('([\.\!\?\"\']$)', reply):
-            pass
-        else:
-            reply += "."
-        mine.add_text(reply)
+    for mention in source_mentions:
+        if random.choice(range(REPLY_ODDS)) == 0:
+            source_replies = []
+            for handle in SOURCE_ACCOUNTS:
+                user = handle
+                max_id = None
+                for x in range(17)[1:]:
+                    source_replies_iter, max_id = grab_replies(twitter, max_id)
+                    source_replies += source_replies_iter
+                print "{0} replies found in {1}".format(len(source_replies), handle)
+                if len(source_replies) == 0:
+                    print "Error fetching replies from Twitter. Aborting."
+                    sys.exit()
+            mine = markov.MarkovChainer(order)
+            for reply in source_replies:
+                if re.search('([\.\!\?\"\']$)', reply):
+                    pass
+                else:
+                    reply += "."
+                mine.add_text(reply)
 
-    for x in range(0, 10):
-        ebook_reply = mine.generate_sentence()
-        print ebook_reply
+            for x in range(0, 10):
+                ebook_reply = mine.generate_sentence()
+
+            rando = random.randint(0, 10)
+            if rando == 0:
+                #say something crazy/prophetic in all caps
+                print "ALL THE THINGS"
+                ebook_reply = ebook_reply.upper()
+
+            #adds user handle to tweet
+            ebook_reply = mention.user.screen_name + ' ' + ebook_reply
+
+            #throw out tweets that match anything from the source account.
+            if ebook_tweet != None and len(ebook_tweet) < 110 and not DEBUG:
+                #reply
+                twitter.reply(ebook_reply, mention.id)
 
     if guess == 0:
         #gets tweets
