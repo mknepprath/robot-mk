@@ -79,6 +79,22 @@ def grab_tweets(twitter, max_id=None):
                 source_tweets.append(tweet.text)
     return source_tweets, max_id
 
+def grab_replies(twitter, max_id=None):
+    """Gets replies from @robot_mk."""
+    source_replies = []
+    user_replies = twitter.api.user_timeline(
+        screen_name=user,
+        count=200,
+        max_id=max_id
+    )
+    max_id = user_replies[len(user_replies)-1].id-1
+    for tweet in user_replies:
+        if tweet.text[0][0] == '@':
+            tweet.text = filter_tweet(tweet)
+            if len(tweet.text) != 0:
+                source_replies.append(tweet.text)
+    return source_replies, max_id
+
 if __name__ == "__main__":
     twitter = TwitterAPI()
     order = ORDER
@@ -99,6 +115,29 @@ if __name__ == "__main__":
             if not twitter.api.get_status(id=mention.id).favorited:
                 twitter.api.create_favorite(id=mention.id)
                 print 'Favorited \'' + mention.text + '\''
+
+    source_replies = []
+    for handle in SOURCE_ACCOUNTS:
+        user = handle
+        max_id = None
+        for x in range(17)[1:]:
+            source_replies_iter, max_id = grab_replies(twitter, max_id)
+            source_replies += source_replies_iter
+        print "{0} replies found in {1}".format(len(source_replies), handle)
+        if len(source_replies) == 0:
+            print "Error fetching replies from Twitter. Aborting."
+            sys.exit()
+    mine = markov.MarkovChainer(order)
+    for reply in source_replies:
+        if re.search('([\.\!\?\"\']$)', reply):
+            pass
+        else:
+            reply += "."
+        mine.add_text(reply)
+
+    for x in range(0, 10):
+        ebook_reply = mine.generate_sentence()
+        print ebook_reply
 
     if guess == 0:
         #gets tweets
