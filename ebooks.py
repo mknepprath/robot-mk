@@ -5,7 +5,6 @@ import re
 import sys
 from htmlentitydefs import name2codepoint as n2c
 import tweepy
-import twitter
 import markov
 from local_settings import *
 
@@ -27,14 +26,6 @@ class TwitterAPI:
     def reply(self, message, tweet_id):
         """Reply to a tweet"""
         self.api.update_status(status=message, in_reply_to_status_id=tweet_id)
-
-def connect():
-    """Connects to the Twitter API."""
-    api = twitter.Api(consumer_key=os.environ.get('MY_CONSUMER_KEY'),
-                      consumer_secret=os.environ.get('MY_CONSUMER_SECRET'),
-                      access_token_key=os.environ.get('MY_ACCESS_TOKEN_KEY'),
-                      access_token_secret=os.environ.get('MY_ACCESS_TOKEN_SECRET'))
-    return api
 
 def entity(text):
     """Checks something, but I'm not sure what."""
@@ -72,16 +63,17 @@ def filter_tweet(tweet):
     tweet.text = re.sub(r'\xe9', 'e', tweet.text) #take out accented e
     return tweet.text
 
-def grab_tweets(tweep, max_id=None):
+def grab_tweets(twitter, max_id=None):
     """Gets tweets from @robot_mk."""
     source_tweets = []
-    tweep_tweets = tweep.api.user_timeline(
+    user_tweets = twitter.api.user_timeline(
         screen_name=user,
         count=200,
         max_id=max_id
     )
-    max_id = tweep_tweets[len(tweep_tweets)-1].id-1
-    for tweet in tweep_tweets:
+    max_id = user_tweets[len(user_tweets)-1].id-1
+    for tweet in user_tweets:
+        print tweet.text[0][0]
         if tweet.text[0][0] is not '@':
             tweet.text = filter_tweet(tweet)
             if len(tweet.text) != 0:
@@ -107,11 +99,10 @@ if __name__ == "__main__":
             source_tweets = []
             for handle in SOURCE_ACCOUNTS:
                 user = handle
-                api = connect()
-                tweep = TwitterAPI()
+                twitter = TwitterAPI()
                 max_id = None
                 for x in range(17)[1:]:
-                    source_tweets_iter, max_id = grab_tweets(tweep, max_id)
+                    source_tweets_iter, max_id = grab_tweets(twitter, max_id)
                     source_tweets += source_tweets_iter
                 print "{0} tweets found in {1}".format(len(source_tweets), handle)
                 if len(source_tweets) == 0:
