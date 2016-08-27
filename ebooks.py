@@ -98,6 +98,7 @@ if __name__ == "__main__":
         if random.choice(range(ODDS)) == 0:
             if not twitter.api.get_status(id=mention.id).favorited:
                 twitter.api.create_favorite(id=mention.id)
+                print 'Favorited \'' + mention.text + '\''
 
     if guess == 0:
         #gets tweets
