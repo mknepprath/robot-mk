@@ -72,19 +72,16 @@ def filter_tweet(tweet):
     tweet.text = re.sub(r'\xe9', 'e', tweet.text) #take out accented e
     return tweet.text
 
-def grab_tweets(api, max_id=None):
+def grab_tweets(tweep, max_id=None):
     """Gets tweets from @robot_mk."""
     source_tweets = []
-    user_tweets = api.GetUserTimeline(
+    tweep_tweets = tweep.api.user_timeline(
         screen_name=user,
         count=200,
-        max_id=max_id,
-        include_rts=True,
-        trim_user=True,
-        exclude_replies=True
+        max_id=max_id
     )
-    max_id = user_tweets[len(user_tweets)-1].id-1
-    for tweet in user_tweets:
+    max_id = tweep_tweets[len(tweep_tweets)-1].id-1
+    for tweet in tweep_tweets:
         tweet.text = filter_tweet(tweet)
         if len(tweet.text) != 0:
             source_tweets.append(tweet.text)
@@ -168,7 +165,7 @@ if __name__ == "__main__":
 
             if not DEBUG:
                 tweep.tweet(ebook_tweet)
-                
+
             print ebook_tweet
 
         elif ebook_tweet is None:
