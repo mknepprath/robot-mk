@@ -91,7 +91,6 @@ def grab_tweets(api, max_id=None):
     return source_tweets, max_id
 
 if __name__ == "__main__":
-    tweeter = TwitterAPI()
     order = ORDER
     if not DEBUG:
         guess = random.choice(range(ODDS))
@@ -111,6 +110,7 @@ if __name__ == "__main__":
             for handle in SOURCE_ACCOUNTS:
                 user = handle
                 api = connect()
+                tweep = TwitterAPI()
                 max_id = None
                 for x in range(17)[1:]:
                     source_tweets_iter, max_id = grab_tweets(api, max_id)
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                 sys.exit()
 
             if not DEBUG:
-                status = api.PostUpdate(ebook_tweet)
+                status = tweep.tweet(ebook_tweet)
                 print status.text.encode('utf-8')
             else:
                 print ebook_tweet
