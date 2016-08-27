@@ -153,6 +153,8 @@ if __name__ == "__main__":
             if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
                 #reply
                 twitter.reply(ebook_reply, mention.id)
+                print 'Replied with \'' + ebook_reply + '\''
+
 
     if guess == 0:
         #gets tweets
