@@ -8,9 +8,9 @@ from local_settings import *
 
 def connect():
     api = twitter.Api(consumer_key=MY_CONSUMER_KEY,
-                          consumer_secret=MY_CONSUMER_SECRET,
-                          access_token_key=MY_ACCESS_TOKEN_KEY,
-                          access_token_secret=MY_ACCESS_TOKEN_SECRET)
+                        consumer_secret=MY_CONSUMER_SECRET,
+                        access_token_key=MY_ACCESS_TOKEN_KEY,
+                        access_token_secret=MY_ACCESS_TOKEN_SECRET)
     return api
 
 def entity(text):
@@ -70,6 +70,7 @@ if __name__=="__main__":
             for item in string_list:
                 source_tweets = item.split(",")
         else:
+            #gets tweets
             source_tweets = []
             for handle in SOURCE_ACCOUNTS:
                 user=handle
@@ -122,6 +123,12 @@ if __name__=="__main__":
                 else:
                     print "TOO SIMILAR: " + ebook_tweet
                     sys.exit()
+
+            #throw out tweets that end with "by on" or similar
+            dribbbletweets = ["by on", "BY ON", "by for on"]
+            if any(d in ebook_tweet for d in dribbbletweets):
+                print "DRIBBBLE TWEET: " + ebook_tweet
+                sys.exit()
 
             if DEBUG == False:
                 status = api.PostUpdate(ebook_tweet)
