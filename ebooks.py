@@ -15,7 +15,7 @@ class TwitterAPI:
         consumer_key = MY_CONSUMER_KEY
         consumer_secret = MY_CONSUMER_SECRET
         auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        access_token = MY_ACCESS_TOKEN
+        access_token = MY_ACCESS_TOKEN_KEY
         access_token_secret = MY_ACCESS_TOKEN_SECRET
         auth.set_access_token(access_token, access_token_secret)
         self.api = tweepy.API(auth, wait_on_rate_limit=True)
