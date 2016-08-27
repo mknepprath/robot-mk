@@ -10,13 +10,7 @@ import markov
 from local_settings import *
 
 class TwitterAPI:
-    """
-    Class for accessing the Twitter API.
-
-    Requires API credentials to be available in environment
-    variables. These will be set appropriately if the bot was created
-    with init.sh included with the heroku-twitterbot-starter
-    """
+    """Class for accessing the Twitter API."""
     def __init__(self):
         consumer_key = os.environ.get('MY_CONSUMER_KEY')
         consumer_secret = os.environ.get('MY_CONSUMER_SECRET')
@@ -97,6 +91,8 @@ def grab_tweets(api, max_id=None):
     return source_tweets, max_id
 
 if __name__ == "__main__":
+    tweeter = TwitterAPI()
+    tweeter.tweet('test!')
     order = ORDER
     if not DEBUG:
         guess = random.choice(range(ODDS))
