@@ -152,7 +152,7 @@ if __name__ == "__main__":
             #throw out tweets that match anything from the source account.
             if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
                 #reply
-                if random.choice(range(8)) == 0:
+                if random.choice(range(QUOTE_ODDS)) == 0:
                     ebook_reply += ' http://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id)
                     twitter.reply(ebook_reply, mention.id)
                     print 'Quoted with \'' + ebook_reply + '\''
