@@ -149,9 +149,6 @@ if __name__ == "__main__":
                 print "ALL THE THINGS"
                 ebook_reply = ebook_reply.upper()
 
-            #adds user handle to tweet
-            ebook_reply = '@' + mention.user.screen_name + ' ' + ebook_reply
-
             #throw out tweets that match anything from the source account.
             if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
                 #reply
