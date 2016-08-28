@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # else:
     #     twitter.api.destroy_favorite(id=TEST_TWEET_ID)
 
-    source_mentions = twitter.api.mentions_timeline(count=10)
+    source_mentions = twitter.api.mentions_timeline(count=3)
     for mention in source_mentions:
         if random.choice(range(FAVE_ODDS)) == 0:
             if not twitter.api.get_status(id=mention.id).favorited:
