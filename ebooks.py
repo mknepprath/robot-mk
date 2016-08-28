@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     for mention in source_mentions:
         source_compare_tweets = twitter.api.user_timeline(
-            screen_name=user,
+            screen_name='robot_mk',
             count=50)
         for tweet in source_compare_tweets:
             print tweet.in_reply_to_status_id
