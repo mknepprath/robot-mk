@@ -117,6 +117,11 @@ if __name__ == "__main__":
                 print 'Favorited \'' + mention.text + '\''
 
     for mention in source_mentions:
+        source_compare_tweets = twitter.api.user_timeline(
+            screen_name=user,
+            count=50)
+        for tweet in source_compare_tweets:
+            print tweet.in_reply_to_status_id
         if random.choice(range(REPLY_ODDS)) == 0:
             source_replies = []
             for handle in SOURCE_ACCOUNTS:
