@@ -120,9 +120,12 @@ if __name__ == "__main__":
         source_compare_tweets = twitter.api.user_timeline(
             screen_name='robot_mk',
             count=50)
+        mentioned = False
         for tweet in source_compare_tweets:
-            print tweet.in_reply_to_status_id
-        if random.choice(range(REPLY_ODDS)) == 0:
+            if tweet.in_reply_to_status_id is mention.id
+                print mention.id + ' has been replied to.'
+                mentioned = True
+        if random.choice(range(REPLY_ODDS)) == 0 and not mentioned:
             source_replies = []
             for handle in SOURCE_ACCOUNTS:
                 user = handle
