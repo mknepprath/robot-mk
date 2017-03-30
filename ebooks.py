@@ -1,15 +1,14 @@
-"""Main file for @robot_mk."""
 import os
 import random
 import re
 import sys
 from htmlentitydefs import name2codepoint as n2c
+from datetime import datetime
 import tweepy
 import markov
 from local_settings import *
 
 class TwitterAPI:
-    """Class for accessing the Twitter API."""
     def __init__(self):
         consumer_key = os.environ.get('MY_CONSUMER_KEY')
         consumer_secret = os.environ.get('MY_CONSUMER_SECRET')
@@ -20,18 +19,15 @@ class TwitterAPI:
         self.api = tweepy.API(auth, wait_on_rate_limit=True)
 
     def tweet(self, message):
-        """Send a tweet"""
         self.api.update_status(status=message)
 
     def reply(self, message, tweet_id):
-        """Reply to a tweet"""
         self.api.update_status(status=message, in_reply_to_status_id=tweet_id)
 
 def entity(text):
-    """Checks something, but I'm not sure what."""
-    if text[:2] == "&#":
+    if text[:2] == '&#':
         try:
-            if text[:3] == "&#x":
+            if text[:3] == '&#x':
                 return unichr(int(text[3:-1], 16))
             else:
                 return unichr(int(text[2:-1]))
@@ -47,7 +43,6 @@ def entity(text):
     return text
 
 def filter_tweet(tweet):
-    """Cleans up tweets gathered."""
     tweet.text = re.sub(r'\b(RT|MT) .+', '', tweet.text) #take out anything after RT or MT
     tweet.text = re.sub(
         r'(\#|@|(h\/t)|(http))\S+',
@@ -64,7 +59,6 @@ def filter_tweet(tweet):
     return tweet.text
 
 def grab_tweets(twitter, max_id=None):
-    """Gets tweets from @robot_mk."""
     source_tweets = []
     user_tweets = twitter.api.user_timeline(
         screen_name=user,
@@ -80,7 +74,6 @@ def grab_tweets(twitter, max_id=None):
     return source_tweets, max_id
 
 def grab_replies(twitter, max_id=None):
-    """Gets replies from @robot_mk."""
     source_replies = []
     user_replies = twitter.api.user_timeline(
         screen_name=user,
@@ -95,9 +88,9 @@ def grab_replies(twitter, max_id=None):
                 source_replies.append(tweet.text)
     return source_replies, max_id
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     twitter = TwitterAPI()
-    order = ORDER
+    print datetime.now().time()
     if not DEBUG:
         guess = random.choice(range(ODDS))
     else:
@@ -128,16 +121,16 @@ if __name__ == "__main__":
                 for x in range(17)[1:]:
                     source_replies_iter, max_id = grab_replies(twitter, max_id)
                     source_replies += source_replies_iter
-                print "{0} replies found in {1}".format(len(source_replies), handle)
+                print '{0} replies found in {1}'.format(len(source_replies), handle)
                 if len(source_replies) == 0:
-                    print "Error fetching replies from Twitter. Aborting."
+                    print 'Error fetching replies from Twitter. Aborting.'
                     sys.exit()
-            mine = markov.MarkovChainer(order)
+            mine = markov.MarkovChainer(ORDER)
             for reply in source_replies:
                 if re.search('([\.\!\?\"\']$)', reply):
                     pass
                 else:
-                    reply += "."
+                    reply += '.'
                 mine.add_text(reply)
 
             for x in range(0, 10):
@@ -146,7 +139,7 @@ if __name__ == "__main__":
             rando = random.randint(0, 10)
             if rando == 0:
                 #say something crazy/prophetic in all caps
-                print "ALL THE THINGS"
+                print 'ALL THE THINGS'
                 ebook_reply = ebook_reply.upper()
 
             #throw out tweets that match anything from the source account.
@@ -172,16 +165,16 @@ if __name__ == "__main__":
             for x in range(17)[1:]:
                 source_tweets_iter, max_id = grab_tweets(twitter, max_id)
                 source_tweets += source_tweets_iter
-            print "{0} tweets found in {1}".format(len(source_tweets), handle)
+            print '{0} tweets found in {1}'.format(len(source_tweets), handle)
             if len(source_tweets) == 0:
-                print "Error fetching tweets from Twitter. Aborting."
+                print 'Error fetching tweets from Twitter. Aborting.'
                 sys.exit()
-        mine = markov.MarkovChainer(order)
+        mine = markov.MarkovChainer(ORDER)
         for tweet in source_tweets:
             if re.search('([\.\!\?\"\']$)', tweet):
                 pass
             else:
-                tweet += "."
+                tweet += '.'
             mine.add_text(tweet)
 
         for x in range(0, 10):
@@ -189,7 +182,7 @@ if __name__ == "__main__":
 
         #randomly drop the last word, as Horse_ebooks appears to do.
         if random.randint(0, 4) == 0 and re.search(r'(in|to|from|for|with|by|our|of|your|around|under|beyond)\s\w+$', ebook_tweet) != None:
-            print "Losing last word randomly"
+            print 'Losing last word randomly'
             ebook_tweet = re.sub(r'\s\w+.$', '', ebook_tweet)
             print ebook_tweet
 
@@ -197,15 +190,15 @@ if __name__ == "__main__":
         if ebook_tweet != None and len(ebook_tweet) < 40:
             rando = random.randint(0, 10)
             if rando == 0 or rando == 7:
-                print "Short tweet. Adding another sentence randomly"
+                print 'Short tweet. Adding another sentence randomly'
                 newer_tweet = mine.generate_sentence()
                 if newer_tweet != None:
-                    ebook_tweet += " " + mine.generate_sentence()
+                    ebook_tweet += ' ' + mine.generate_sentence()
                 else:
                     ebook_tweet = ebook_tweet
             elif rando == 1:
                 #say something crazy/prophetic in all caps
-                print "ALL THE THINGS"
+                print 'ALL THE THINGS'
                 ebook_tweet = ebook_tweet.upper()
 
         #throw out tweets that match anything from the source account.
@@ -214,13 +207,13 @@ if __name__ == "__main__":
                 if ebook_tweet[:-1] not in tweet:
                     continue
                 else:
-                    print "TOO SIMILAR: " + ebook_tweet
+                    print 'TOO SIMILAR: ' + ebook_tweet
                     sys.exit()
 
-            #throw out tweets that end with "by on" or similar
-            dribbbletweets = ["by on", "BY ON", "by for on"]
+            #throw out tweets that end with 'by on' or similar
+            dribbbletweets = ['by on', 'BY ON', 'by for on']
             if any(d in ebook_tweet for d in dribbbletweets):
-                print "DRIBBBLE TWEET: " + ebook_tweet
+                print 'DRIBBBLE TWEET: ' + ebook_tweet
                 sys.exit()
 
             if not DEBUG:
@@ -229,8 +222,8 @@ if __name__ == "__main__":
             print 'Tweeted \'' + ebook_tweet + '\''
 
         elif ebook_tweet is None:
-            print "Tweet is empty, sorry."
+            print 'Tweet is empty, sorry.'
         else:
-            print "TOO LONG: " + ebook_tweet
+            print 'TOO LONG: ' + ebook_tweet
     else:
-        print str(guess) + " No, sorry, not this time." #message if the random number fails.
+        print str(guess) + ' No, sorry, not this time.' #message if the random number fails.
