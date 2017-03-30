@@ -90,7 +90,6 @@ def grab_replies(twitter, max_id=None):
 
 if __name__ == '__main__':
     twitter = TwitterAPI()
-    print datetime.now().hour
     if not DEBUG:
         guess = random.choice(range(ODDS))
     else:
@@ -155,8 +154,10 @@ if __name__ == '__main__':
                     twitter.reply(ebook_reply, mention.id)
                     print 'Replied with \'' + ebook_reply + '\''
 
+    currentHour = datetime.now().hour
+    print currentHour
 
-    if guess == 0:
+    if guess == 0 and (currentHour <= 3 or currentHour >= 11):
         #gets tweets
         source_tweets = []
         for handle in SOURCE_ACCOUNTS:
