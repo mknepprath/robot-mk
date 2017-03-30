@@ -90,7 +90,7 @@ def grab_replies(twitter, max_id=None):
 
 if __name__ == '__main__':
     twitter = TwitterAPI()
-    print datetime.now().time()
+    print datetime.now().time().hour
     if not DEBUG:
         guess = random.choice(range(ODDS))
     else:
