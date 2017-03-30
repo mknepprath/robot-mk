@@ -155,9 +155,10 @@ if __name__ == '__main__':
                     print 'Replied with \'' + ebook_reply + '\''
 
     currentHour = datetime.now().hour
-    print currentHour
+    awake = currentHour <= 3 or currentHour >= 11
+    print ('TWEET O\'CLOCK') if awake else 'sleepin'
 
-    if guess == 0 and (currentHour <= 3 or currentHour >= 11):
+    if guess == 0 and awake:
         #gets tweets
         source_tweets = []
         for handle in SOURCE_ACCOUNTS:
