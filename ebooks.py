@@ -95,9 +95,13 @@ if __name__ == '__main__':
     else:
         guess = 0
 
+    currentHour = datetime.now().hour
+    awake = currentHour <= 3 or currentHour >= 11
+    print ('TWEET O\'CLOCK') if awake else 'sleepin'
+
     source_mentions = twitter.api.mentions_timeline(count=3)
     for mention in source_mentions:
-        if random.choice(range(FAVE_ODDS)) == 0:
+        if random.choice(range(FAVE_ODDS)) == 0 and awake:
             if not twitter.api.get_status(id=mention.id).favorited:
                 twitter.api.create_favorite(id=mention.id)
                 print 'Favorited \'' + mention.text + '\''
@@ -111,7 +115,7 @@ if __name__ == '__main__':
             if tweet.in_reply_to_status_id == mention.id:
                 print 'Already replied to \'' + mention.text + '\''
                 mentioned = True
-        if random.choice(range(REPLY_ODDS)) == 0 and not mentioned:
+        if random.choice(range(REPLY_ODDS)) == 0 and awake and not mentioned:
 
             source_replies = []
             for handle in SOURCE_ACCOUNTS:
@@ -153,10 +157,6 @@ if __name__ == '__main__':
                     ebook_reply = '@' + mention.user.screen_name + ' ' + ebook_reply
                     twitter.reply(ebook_reply, mention.id)
                     print 'Replied with \'' + ebook_reply + '\''
-
-    currentHour = datetime.now().hour
-    awake = currentHour <= 3 or currentHour >= 11
-    print ('TWEET O\'CLOCK') if awake else 'sleepin'
 
     if guess == 0 and awake:
         #gets tweets
