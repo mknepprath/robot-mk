@@ -99,65 +99,6 @@ if __name__ == '__main__':
     awake = currentHour <= 3 or currentHour >= 11
     print ('TWEET O\'CLOCK') if awake else 'sleepin'
 
-    source_mentions = twitter.api.mentions_timeline(count=3)
-    for mention in source_mentions:
-        if random.choice(range(FAVE_ODDS)) == 0 and awake:
-            if not twitter.api.get_status(id=mention.id).favorited:
-                twitter.api.create_favorite(id=mention.id)
-                print 'Favorited \'' + mention.text + '\''
-
-    for mention in source_mentions:
-        source_compare_tweets = twitter.api.user_timeline(
-            screen_name='robot_mk',
-            count=50)
-        mentioned = False
-        for tweet in source_compare_tweets:
-            if tweet.in_reply_to_status_id == mention.id:
-                print 'Already replied to \'' + mention.text + '\''
-                mentioned = True
-        if random.choice(range(REPLY_ODDS)) == 0 and awake and not mentioned:
-
-            source_replies = []
-            for handle in SOURCE_ACCOUNTS:
-                user = handle
-                max_id = None
-                for x in range(17)[1:]:
-                    source_replies_iter, max_id = grab_replies(twitter, max_id)
-                    source_replies += source_replies_iter
-                print '{0} replies found in {1}'.format(len(source_replies), handle)
-                if len(source_replies) == 0:
-                    print 'Error fetching replies from Twitter. Aborting.'
-                    sys.exit()
-            mine = markov.MarkovChainer(ORDER)
-            for reply in source_replies:
-                if re.search('([\.\!\?\"\']$)', reply):
-                    pass
-                else:
-                    reply += '.'
-                mine.add_text(reply)
-
-            for x in range(0, 10):
-                ebook_reply = mine.generate_sentence()
-
-            rando = random.randint(0, 10)
-            if rando == 0:
-                #say something crazy/prophetic in all caps
-                print 'ALL THE THINGS'
-                ebook_reply = ebook_reply.upper()
-
-            #throw out tweets that match anything from the source account.
-            if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
-                #reply
-                if random.choice(range(QUOTE_ODDS)) == 0:
-                    ebook_reply += ' http://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id)
-                    twitter.reply(ebook_reply, mention.id)
-                    print 'Quoted with \'' + ebook_reply + '\''
-                else:
-                    #adds user handle to tweet
-                    ebook_reply = '@' + mention.user.screen_name + ' ' + ebook_reply
-                    twitter.reply(ebook_reply, mention.id)
-                    print 'Replied with \'' + ebook_reply + '\''
-
     if guess == 0 and awake:
         #gets tweets
         source_tweets = []
@@ -229,3 +170,62 @@ if __name__ == '__main__':
             print 'TOO LONG: ' + ebook_tweet
     else:
         print str(guess) + ' No, sorry, not this time.' #message if the random number fails.
+
+    source_mentions = twitter.api.mentions_timeline(count=3)
+    for mention in source_mentions:
+        if random.choice(range(FAVE_ODDS)) == 0 and awake:
+            if not twitter.api.get_status(id=mention.id).favorited:
+                twitter.api.create_favorite(id=mention.id)
+                print 'Favorited \'' + mention.text + '\''
+
+    for mention in source_mentions:
+        source_compare_tweets = twitter.api.user_timeline(
+            screen_name='robot_mk',
+            count=50)
+        mentioned = False
+        for tweet in source_compare_tweets:
+            if tweet.in_reply_to_status_id == mention.id:
+                print 'Already replied to \'' + mention.text + '\''
+                mentioned = True
+        if random.choice(range(REPLY_ODDS)) == 0 and awake and not mentioned:
+
+            source_replies = []
+            for handle in SOURCE_ACCOUNTS:
+                user = handle
+                max_id = None
+                for x in range(17)[1:]:
+                    source_replies_iter, max_id = grab_replies(twitter, max_id)
+                    source_replies += source_replies_iter
+                print '{0} replies found in {1}'.format(len(source_replies), handle)
+                if len(source_replies) == 0:
+                    print 'Error fetching replies from Twitter. Aborting.'
+                    sys.exit()
+            mine = markov.MarkovChainer(ORDER)
+            for reply in source_replies:
+                if re.search('([\.\!\?\"\']$)', reply):
+                    pass
+                else:
+                    reply += '.'
+                mine.add_text(reply)
+
+            for x in range(0, 10):
+                ebook_reply = mine.generate_sentence()
+
+            rando = random.randint(0, 10)
+            if rando == 0:
+                #say something crazy/prophetic in all caps
+                print 'ALL THE THINGS'
+                ebook_reply = ebook_reply.upper()
+
+            #throw out tweets that match anything from the source account.
+            if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
+                #reply
+                if random.choice(range(QUOTE_ODDS)) == 0:
+                    ebook_reply += ' http://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id)
+                    twitter.reply(ebook_reply, mention.id)
+                    print 'Quoted with \'' + ebook_reply + '\''
+                else:
+                    #adds user handle to tweet
+                    ebook_reply = '@' + mention.user.screen_name + ' ' + ebook_reply
+                    twitter.reply(ebook_reply, mention.id)
+                    print 'Replied with \'' + ebook_reply + '\''
