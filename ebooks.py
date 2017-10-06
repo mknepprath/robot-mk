@@ -91,7 +91,7 @@ def grab_replies(twitter, max_id=None):
 if __name__ == '__main__':
     twitter = TwitterAPI()
     if not DEBUG:
-        guess = random.choice(range(ODDS))
+        guess = 0
     else:
         guess = 0
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     else:
         print str(guess) + ' No, sorry, not this time.' #message if the random number fails.
 
-    source_mentions = twitter.api.mentions_timeline(count=3)
+    source_mentions = twitter.api.mentions_timeline(count=2)
     for mention in source_mentions:
         if random.choice(range(FAVE_ODDS)) == 0 and awake:
             if not twitter.api.get_status(id=mention.id).favorited:
