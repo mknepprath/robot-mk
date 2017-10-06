@@ -91,7 +91,7 @@ def grab_replies(twitter, max_id=None):
 if __name__ == '__main__':
     twitter = TwitterAPI()
     if not DEBUG:
-        guess = 0
+        guess = random.choice(range(ODDS))
     else:
         guess = 0
 
