@@ -187,7 +187,7 @@ if __name__ == '__main__':
             if tweet.in_reply_to_status_id == mention.id:
                 print 'Already replied to this one.'
                 mentioned = True
-        if random.choice(range(REPLY_ODDS)) == 0 and awake and not mentioned:
+        if True and not mentioned:
 
             source_replies = []
             for handle in SOURCE_ACCOUNTS:
