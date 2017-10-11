@@ -99,7 +99,7 @@ if __name__ == '__main__':
     awake = currentHour <= 3 or currentHour >= 11
     print ('TWEET O\'CLOCK') if awake else 'sleepin'
 
-    if True:
+    if guess == 0 and awake:
         #gets tweets
         source_tweets = []
         for handle in SOURCE_ACCOUNTS:
@@ -162,7 +162,7 @@ if __name__ == '__main__':
             if not DEBUG:
                 twitter.tweet(ebook_tweet)
 
-            # print 'Tweeted \'' + ebook_tweet + '\''
+            print 'Tweeted \'' + ebook_tweet + '\''
 
         elif ebook_tweet is None:
             print 'Tweet is empty, sorry.'
@@ -187,7 +187,7 @@ if __name__ == '__main__':
             if tweet.in_reply_to_status_id == mention.id:
                 print 'Already replied to this one.'
                 mentioned = True
-        if True and not mentioned:
+        if random.choice(range(REPLY_ODDS)) == 0 and awake and not mentioned:
 
             source_replies = []
             for handle in SOURCE_ACCOUNTS:
@@ -225,7 +225,5 @@ if __name__ == '__main__':
                     twitter.reply(ebook_reply, mention.id)
                     print 'Quoted with \'' + ebook_reply + '\''
                 else:
-                    #adds user handle to tweet
-                    ebook_reply = '@' + mention.user.screen_name + ' ' + ebook_reply
                     twitter.reply(ebook_reply, mention.id)
                     print 'Replied with \'' + ebook_reply + '\''
