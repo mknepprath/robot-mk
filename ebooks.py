@@ -22,7 +22,7 @@ class TwitterAPI:
         self.api.update_status(status=message)
 
     def reply(self, message, tweet_id):
-        self.api.update_status(status=message, in_reply_to_status_id=tweet_id)
+        self.api.update_status(status=message, in_reply_to_status_id=tweet_id, auto_populate_reply_metadata=True)
 
 def entity(text):
     if text[:2] == '&#':
