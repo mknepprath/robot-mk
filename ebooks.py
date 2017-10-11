@@ -99,7 +99,7 @@ if __name__ == '__main__':
     awake = currentHour <= 3 or currentHour >= 11
     print ('TWEET O\'CLOCK') if awake else 'sleepin'
 
-    if guess == 0 and awake:
+    if True:
         #gets tweets
         source_tweets = []
         for handle in SOURCE_ACCOUNTS:
