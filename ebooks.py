@@ -162,7 +162,7 @@ if __name__ == '__main__':
             if not DEBUG:
                 twitter.tweet(ebook_tweet)
 
-            print 'Tweeted \'' + ebook_tweet + '\''
+            # print 'Tweeted \'' + ebook_tweet + '\''
 
         elif ebook_tweet is None:
             print 'Tweet is empty, sorry.'
