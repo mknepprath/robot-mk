@@ -161,7 +161,7 @@ if __name__ == '__main__':
                 print 'DRIBBBLE TWEET: ' + ebook_tweet
                 sys.exit()
 
-            # if not DEBUG:
+            if not DEBUG:
                 twitter.tweet(ebook_tweet)
 
             print 'Tweeted \'' + ebook_tweet + '\''
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                 ebook_reply = ebook_reply.upper()
 
             #throw out tweets that match anything from the source account.
-            if ebook_reply != None and len(ebook_reply) < 240:
+            if ebook_reply != None and len(ebook_reply) < 240 and not DEBUG:
                 #reply
                 if random.choice(range(QUOTE_ODDS)) == 0:
                     ebook_reply += ' http://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id)
