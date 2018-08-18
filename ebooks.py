@@ -161,7 +161,7 @@ if __name__ == '__main__':
                 print 'DRIBBBLE TWEET: ' + ebook_tweet
                 sys.exit()
 
-            if not DEBUG:
+            # if not DEBUG:
                 twitter.tweet(ebook_tweet)
 
             print 'Tweeted \'' + ebook_tweet + '\''
