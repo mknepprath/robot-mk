@@ -147,7 +147,7 @@ if __name__ == '__main__':
                 ebook_tweet = ebook_tweet.upper()
 
         #throw out tweets that match anything from the source account.
-        if ebook_tweet != None and len(ebook_tweet) < 110:
+        if ebook_tweet != None and len(ebook_tweet) < 240:
             for tweet in source_tweets:
                 if ebook_tweet[:-1] not in tweet:
                     continue
@@ -220,7 +220,7 @@ if __name__ == '__main__':
                 ebook_reply = ebook_reply.upper()
 
             #throw out tweets that match anything from the source account.
-            if ebook_reply != None and len(ebook_reply) < 110 and not DEBUG:
+            if ebook_reply != None and len(ebook_reply) < 240:
                 #reply
                 if random.choice(range(QUOTE_ODDS)) == 0:
                     ebook_reply += ' http://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id)
