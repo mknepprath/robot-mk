@@ -63,14 +63,15 @@ def grab_tweets(twitter, max_id=None):
     user_tweets = twitter.api.user_timeline(
         screen_name=user,
         count=200,
-        max_id=max_id
+        max_id=max_id,
+        tweet_mode='extended'
     )
     max_id = user_tweets[len(user_tweets)-1].id-1
     for tweet in user_tweets:
-        if tweet.text[0][0] != '@':
-            tweet.text = filter_tweet(tweet)
+        if tweet.full_text[0][0] != '@':
+            tweet.full_text = filter_tweet(tweet)
             if len(tweet.text) != 0:
-                source_tweets.append(tweet.text)
+                source_tweets.append(tweet.full_text)
     return source_tweets, max_id
 
 def grab_replies(twitter, max_id=None):
@@ -78,14 +79,15 @@ def grab_replies(twitter, max_id=None):
     user_replies = twitter.api.user_timeline(
         screen_name=user,
         count=200,
-        max_id=max_id
+        max_id=max_id,
+        tweet_mode='extended'
     )
     max_id = user_replies[len(user_replies)-1].id-1
     for tweet in user_replies:
-        if tweet.text[0][0] == '@':
-            tweet.text = filter_tweet(tweet)
-            if len(tweet.text) != 0:
-                source_replies.append(tweet.text)
+        if tweet.full_text[0][0] == '@':
+            tweet.full_text = filter_tweet(tweet)
+            if len(tweet.full_text) != 0:
+                source_replies.append(tweet.full_text)
     return source_replies, max_id
 
 if __name__ == '__main__':

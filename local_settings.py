@@ -8,5 +8,7 @@ FAVE_ODDS = 72
 REPLY_ODDS = 36
 QUOTE_ODDS = 144
 ORDER = 2 #how closely do you want this to hew to sensical? 1 is low and 3 is high.
-DEBUG = False #Set this to False to start Tweeting live
+DEBUG = True #Set this to False to start Tweeting live
 TWEET_ACCOUNT = 'robot_mk'
+
+#heroku run worker --app robot-mk
