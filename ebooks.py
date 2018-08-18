@@ -43,20 +43,20 @@ def entity(text):
     return text
 
 def filter_tweet(tweet):
-    tweet.text = re.sub(r'\b(RT|MT) .+', '', tweet.text) #take out anything after RT or MT
-    tweet.text = re.sub(
+    tweet.full_text = re.sub(r'\b(RT|MT) .+', '', tweet.full_text) #take out anything after RT or MT
+    tweet.full_text = re.sub(
         r'(\#|@|(h\/t)|(http))\S+',
         '',
-        tweet.text
+        tweet.full_text
     ) #Take out URLs, hashtags, hts, etc.
-    tweet.text = re.sub(r'\n', '', tweet.text) #take out new lines.
-    tweet.text = re.sub(r'\"|\(|\)', '', tweet.text) #take out quotes.
-    htmlsents = re.findall(r'&\w+;', tweet.text)
+    tweet.full_text = re.sub(r'\n', '', tweet.full_text) #take out new lines.
+    tweet.full_text = re.sub(r'\"|\(|\)', '', tweet.full_text) #take out quotes.
+    htmlsents = re.findall(r'&\w+;', tweet.full_text)
     if len(htmlsents) > 0:
         for item in htmlsents:
-            tweet.text = re.sub(item, entity(item), tweet.text)
-    tweet.text = re.sub(r'\xe9', 'e', tweet.text) #take out accented e
-    return tweet.text
+            tweet.full_text = re.sub(item, entity(item), tweet.full_text)
+    tweet.full_text = re.sub(r'\xe9', 'e', tweet.full_text) #take out accented e
+    return tweet.full_text
 
 def grab_tweets(twitter, max_id=None):
     source_tweets = []
@@ -70,7 +70,7 @@ def grab_tweets(twitter, max_id=None):
     for tweet in user_tweets:
         if tweet.full_text[0][0] != '@':
             tweet.full_text = filter_tweet(tweet)
-            if len(tweet.text) != 0:
+            if len(tweet.full_text) != 0:
                 source_tweets.append(tweet.full_text)
     return source_tweets, max_id
 
