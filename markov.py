@@ -1,23 +1,25 @@
 import random
 import re
 
+
 class MarkovChainer(object):
-    def __init__(self, order):
-        self.order=order
+    def __init__(self):
+        # How closely do you want this to hew to sensical? 1 is low and 3 is high.
+        self.order = 2
         self.beginnings = []
         self.freq = {}
 
-    #pass a string with a terminator to the function to add it to the markov lists.
+    # Pass a string with a terminator to the function to add it to the markov lists.
     def add_sentence(self, string, terminator):
         data = "".join(string)
         words = data.split()
         buf = []
         if len(words) > self.order:
             words.append(terminator)
-            self.beginnings.append(words[0:self.order])    
+            self.beginnings.append(words[0:self.order])
         else:
             pass
-        
+
         for word in words:
             buf.append(word)
             if len(buf) == self.order + 1:
@@ -44,11 +46,11 @@ class MarkovChainer(object):
                 else:
                     sentence = piece
 
-    #Generate the goofy sentences that become your tweet.
+    # Generate the goofy sentences that become your tweet.
     def generate_sentence(self):
         res = random.choice(self.beginnings)
         res = res[:]
-        if len(res)==self.order:
+        if len(res) == self.order:
             nw = True
             while nw != None:
                 restup = (res[-2], res[-1])
@@ -80,7 +82,8 @@ class MarkovChainer(object):
             next_words = random.choice(arr)
             return next_words
         except:
-            return None        
+            return None
+
 
 if __name__ == "__main__":
     print "Try running ebooks.py first"
