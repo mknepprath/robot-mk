@@ -106,13 +106,14 @@ if __name__ == '__main__':
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
     awake = current_hour <= 3 or current_hour >= 11
-    print 'TWEET O\'CLOCK! Fetching tweets.' if awake else 'slepin.'
+    print 'I\'m awake. TWEET O\'CLOCK!' if awake else 'slepin.'
 
     # Instantiates empty tweets list.
     source_tweets = []
     source_replies = []
 
     if guess == 0 and awake:
+        print 'Fetching tweets...'
         # Populates tweets list.
         for screen_name in SOURCE_ACCOUNTS:
             # Reset max_id for each account.
@@ -130,7 +131,7 @@ if __name__ == '__main__':
                 sys.exit()
 
     if guess == 0 and awake:
-        print 'Generating tweets.'
+        print 'Generating tweets...'
 
         mine = markov.MarkovChainer()
 
@@ -189,67 +190,70 @@ if __name__ == '__main__':
             print 'Tweet is empty, sorry.'
         else:
             print 'TOO LONG: ' + ebook_tweet
+
+        # Let's do stuff with mentions. First, let's get a couple.
+        source_mentions = twitter.api.mentions_timeline(count=2)
+
+        print 'Getting last two mentions.'
+
+        # Loop through the two mentions.
+        for mention in source_mentions:
+            # Only do this while awake, sometimes.
+            if random.choice(range(FAVE_ODDS)) == 0 and awake:
+                # If the mention isn't favorited, favorite it.
+                if not twitter.api.get_status(id=mention.id).favorited:
+                    twitter.api.create_favorite(id=mention.id)
+                    print 'Favorited \'' + mention.text + '\''
+
+            # Get tweets from this bot.
+            source_compare_tweets = twitter.api.user_timeline(
+                screen_name='robot_mk',
+                count=50)
+
+            # Instantiate replied to false.
+            replied = False
+
+            # Check if the current mention matches a tweet this bot has replied to.
+            for tweet in source_compare_tweets:
+                if tweet.in_reply_to_status_id == mention.id:
+                    print 'Matches a tweet bot has replied to.'
+                    replied = True
+
+            # If the bot is awake and has not replied to this mention, reply, sometimes.
+            if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
+                print 'Generating replies...'
+
+                mine = markov.MarkovChainer()
+
+                for reply in source_replies:
+                    if re.search('([\.\!\?\"\']$)', reply):
+                        pass
+                    else:
+                        reply += '.'
+                    mine.add_text(reply)
+
+                for x in range(0, 10):
+                    ebook_reply = mine.generate_sentence()
+
+                if random.randint(0, 10) == 0:
+                    # Say something crazy/prophetic in all caps.
+                    print 'ALL THE THINGS'
+                    ebook_reply = ebook_reply.upper()
+
+                # Throw out tweets that match anything from the source account.
+                if ebook_reply != None and len(ebook_reply) < 240 and not DEBUG:
+                    # Reply.
+                    if random.choice(range(QUOTE_ODDS)) == 0:
+                        ebook_reply += ' http://twitter.com/' + \
+                            mention.user.screen_name + \
+                            '/status/' + str(mention.id)
+                        twitter.tweet(ebook_reply)
+                        print 'Quoted with \'' + ebook_reply + '\''
+                    else:
+                        twitter.reply(ebook_reply, mention.id)
+                        print 'Replied with \'' + ebook_reply + '\''
+            else:
+                print 'Not replying this time.'
     else:
         # Message if the random number fails.
         print str(guess) + ' No, sorry, not this time.'
-
-    # Let's do stuff with mentions. First, let's get a couple.
-    source_mentions = twitter.api.mentions_timeline(count=2)
-
-    print 'Getting last two mentions.'
-
-    # Loop through the two mentions.
-    for mention in source_mentions:
-        # Only do this while awake, sometimes.
-        if random.choice(range(FAVE_ODDS)) == 0 and awake:
-            # If the mention isn't favorited, favorite it.
-            if not twitter.api.get_status(id=mention.id).favorited:
-                twitter.api.create_favorite(id=mention.id)
-                print 'Favorited \'' + mention.text + '\''
-
-        # Get tweets from this bot.
-        source_compare_tweets = twitter.api.user_timeline(
-            screen_name='robot_mk',
-            count=50)
-
-        # Instantiate replied to false.
-        replied = False
-
-        # Check if the current mention matches a tweet this bot has replied to.
-        for tweet in source_compare_tweets:
-            if tweet.in_reply_to_status_id == mention.id:
-                print 'Matches a tweet bot has replied to.'
-                replied = True
-
-        # If the bot is awake and has not replied to this mention, reply, sometimes.
-        if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
-            print 'Generating replies.'
-
-            mine = markov.MarkovChainer()
-
-            for reply in source_replies:
-                if re.search('([\.\!\?\"\']$)', reply):
-                    pass
-                else:
-                    reply += '.'
-                mine.add_text(reply)
-
-            for x in range(0, 10):
-                ebook_reply = mine.generate_sentence()
-
-            if random.randint(0, 10) == 0:
-                # Say something crazy/prophetic in all caps.
-                print 'ALL THE THINGS'
-                ebook_reply = ebook_reply.upper()
-
-            # Throw out tweets that match anything from the source account.
-            if ebook_reply != None and len(ebook_reply) < 240 and not DEBUG:
-                # Reply.
-                if random.choice(range(QUOTE_ODDS)) == 0:
-                    ebook_reply += ' http://twitter.com/' + \
-                        mention.user.screen_name + '/status/' + str(mention.id)
-                    twitter.tweet(ebook_reply)
-                    print 'Quoted with \'' + ebook_reply + '\''
-                else:
-                    twitter.reply(ebook_reply, mention.id)
-                    print 'Replied with \'' + ebook_reply + '\''
