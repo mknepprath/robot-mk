@@ -10,5 +10,3 @@ REPLY_ODDS = 36
 QUOTE_ODDS = 96
 DEBUG = False  # Set this to False to start Tweeting live
 TWEET_ACCOUNT = 'robot_mk'
-
-# heroku run worker --app robot-mk
