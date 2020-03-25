@@ -196,6 +196,11 @@ if __name__ == '__main__':
 
         print 'Getting last two mentions.'
 
+        # Get tweets from this bot.
+        source_compare_tweets = twitter.api.user_timeline(
+            screen_name='robot_mk',
+            count=50)
+
         # Loop through the two mentions.
         for mention in source_mentions:
             # Only do this while awake, sometimes.
@@ -204,11 +209,6 @@ if __name__ == '__main__':
                 if not twitter.api.get_status(id=mention.id).favorited:
                     twitter.api.create_favorite(id=mention.id)
                     print 'Favorited \'' + mention.text + '\''
-
-            # Get tweets from this bot.
-            source_compare_tweets = twitter.api.user_timeline(
-                screen_name='robot_mk',
-                count=50)
 
             # Instantiate replied to false.
             replied = False
