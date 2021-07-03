@@ -103,8 +103,10 @@ if __name__ == '__main__':
 
     if not DEBUG:
         guess = random.choice(range(ODDS))
+        reply_guess = random.choice(range(REPLY_ODDS))
     else:
         guess = 0
+        reply_guess = 0
 
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
@@ -168,6 +170,11 @@ if __name__ == '__main__':
         else:
             print('TOO LONG: ' + openai_tweet)
 
+    else:
+        # Message if the random number fails.
+        print(str(guess) + ' No, sorry, not this time.')
+
+    if reply_guess == 0 and awake:
         # Let's do stuff with mentions. First, let's get a couple.
         source_mentions = twitter.api.mentions_timeline(count=2)
 
@@ -254,4 +261,4 @@ if __name__ == '__main__':
                 print('Not replying this time.')
     else:
         # Message if the random number fails.
-        print(str(guess) + ' No, sorry, not this time.')
+        print(str(reply_guess) + ' No reply this time.')
