@@ -142,7 +142,7 @@ if __name__ == '__main__':
         print('\nGenerating tweets...')
 
         response = openai.Completion.create(
-            engine="davinci", prompt=delimiter.join(source_tweets[:80]) + "." + delimiter, max_tokens=40)
+            engine="davinci", prompt=delimiter.join(source_tweets[:80]) + "." + delimiter, max_tokens=50)
         print('OpenAI candidates:')
         print(response.choices[0].text)
         openai_tweet = response.choices[0].text.split(delimiter)[0].strip()
@@ -187,34 +187,30 @@ if __name__ == '__main__':
                     twitter.api.create_favorite(id=mention.id)
                     print('\nFavorited \'' + mention.text + '\'')
 
-            # Instantiate replied to false.
-            replied = False
-
-            replied_to_tweet = twitter.api.get_status(
-                id=mention.in_reply_to_status_id)
-
             # Start building prompt.
-            prompt = "robot_mk:" + source_tweets[0] + delimiter + replied_to_tweet.user.screen_name + \
-                ":" + replied_to_tweet.text + delimiter + \
-                mention.user.screen_name + ":" + mention.text + delimiter
-            end = False
-            while end is not False:
-                print(replied_to_tweet.text)
-                if replied_to_tweet.in_reply_to_status_id_str == None:
-                    end = True
-                    break
-                else:
-                    replied_to_tweet = twitter.api.get_status(
-                        id=replied_to_tweet.in_reply_to_status_id)
-                    prompt = replied_to_tweet.user.screen_name + \
-                        ":" + replied_to_tweet.text + delimiter
-                    print(replied_to_tweet.text)
+            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot." + delimiter
+            prompt = prompt + mention.user.screen_name + ":" + mention.text + delimiter
+
+            if mention.in_reply_to_status_id_str is not None:
+                replied_to_tweet = mention
+                while True:
+                    if replied_to_tweet.in_reply_to_status_id_str is None:
+                        break
+                    else:
+                        replied_to_tweet = twitter.api.get_status(
+                            id=replied_to_tweet.in_reply_to_status_id)
+                        prompt = replied_to_tweet.user.screen_name + \
+                            ":" + replied_to_tweet.text + delimiter + prompt
+                        continue
 
             prompt = prompt + "robot_mk:"
 
             print("\nPrompt:")
             print(prompt)
             print("===\n")
+
+            # Instantiate replied to false.
+            replied = False
 
             # Check if the current mention matches a tweet this bot has replied to.
             for tweet in source_compare_tweets:
@@ -227,7 +223,7 @@ if __name__ == '__main__':
                 print('Generating replies...')
 
                 response = openai.Completion.create(
-                    engine="davinci", prompt=prompt, max_tokens=40)
+                    engine="davinci", prompt=prompt, max_tokens=50)
                 print('OpenAI candidates:')
                 print(response.choices[0].text)
                 openai_reply = response.choices[0].text.split(delimiter)[
@@ -238,14 +234,22 @@ if __name__ == '__main__':
                 if openai_reply != None and len(openai_reply) < 240 and not DEBUG:
                     # Reply.
                     if random.choice(range(QUOTE_ODDS)) == 0:
-                        openai_reply += ' http://twitter.com/' + \
+                        reply = re.sub(
+                            r'(@)\S+',
+                            '',
+                            openai_reply).strip()
+                        reply += ' http://twitter.com/' + \
                             mention.user.screen_name + \
                             '/status/' + str(mention.id)
-                        twitter.tweet(openai_reply)
-                        print('Quoted with \'' + openai_reply + '\'')
+                        twitter.tweet(reply)
+                        print('Quoted with \'' + reply + '\'')
                     else:
-                        twitter.reply(openai_reply, mention.id)
-                        print('Replied with \'' + openai_reply + '\'')
+                        reply = re.sub(
+                            r'(@)\S+',
+                            '',
+                            openai_reply).strip()
+                        twitter.reply(reply, mention.id)
+                        print('Replied with \'' + reply + '\'')
             else:
                 print('Not replying this time.')
     else:
