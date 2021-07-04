@@ -176,14 +176,16 @@ if __name__ == '__main__':
 
     if reply_guess == 0 and awake:
         # Let's do stuff with mentions. First, let's get a couple.
-        source_mentions = twitter.api.mentions_timeline(count=2)
+        source_mentions = twitter.api.mentions_timeline(
+            count=2, tweet_mode='extended')
 
         print('\nGetting last two mentions.')
 
         # Get tweets from this bot.
         source_compare_tweets = twitter.api.user_timeline(
             screen_name='robot_mk',
-            count=50)
+            count=50
+        )
 
         # Loop through the two mentions.
         for mention in source_mentions:
@@ -192,13 +194,13 @@ if __name__ == '__main__':
                 # If the mention isn't favorited, favorite it.
                 if not twitter.api.get_status(id=mention.id).favorited:
                     twitter.api.create_favorite(id=mention.id)
-                    print('\nFavorited \'' + mention.text + '\'')
+                    print('\nFavorited \'' + mention.full_text + '\'')
 
             # Start building prompt.
             mention_text_no_handles = re.sub(
                 r'(@)\S+',
                 '',
-                mention.text).strip()
+                mention.full_text).strip()
             prompt = mention.user.screen_name + \
                 ":" + mention_text_no_handles + delimiter
 
@@ -209,11 +211,11 @@ if __name__ == '__main__':
                         break
                     else:
                         replied_to_tweet = twitter.api.get_status(
-                            id=replied_to_tweet.in_reply_to_status_id)
+                            id=replied_to_tweet.in_reply_to_status_id, tweet_mode='extended')
                         replied_to_tweet_text_no_handles = re.sub(
                             r'(@)\S+',
                             '',
-                            replied_to_tweet.text).strip()
+                            replied_to_tweet.full_text).strip()
                         prompt = replied_to_tweet.user.screen_name + \
                             ":" + replied_to_tweet_text_no_handles + delimiter + prompt
                         continue
