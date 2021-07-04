@@ -195,8 +195,12 @@ if __name__ == '__main__':
                     print('\nFavorited \'' + mention.text + '\'')
 
             # Start building prompt.
-            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot." + delimiter
-            prompt = prompt + mention.user.screen_name + ":" + mention.text + delimiter
+            mention_text_no_handles = re.sub(
+                r'(@)\S+',
+                '',
+                mention.text).strip()
+            prompt = mention.user.screen_name + \
+                ":" + mention_text_no_handles + delimiter
 
             if mention.in_reply_to_status_id_str is not None:
                 replied_to_tweet = mention
@@ -206,11 +210,16 @@ if __name__ == '__main__':
                     else:
                         replied_to_tweet = twitter.api.get_status(
                             id=replied_to_tweet.in_reply_to_status_id)
+                        replied_to_tweet_text_no_handles = re.sub(
+                            r'(@)\S+',
+                            '',
+                            replied_to_tweet.text).strip()
                         prompt = replied_to_tweet.user.screen_name + \
-                            ":" + replied_to_tweet.text + delimiter + prompt
+                            ":" + replied_to_tweet_text_no_handles + delimiter + prompt
                         continue
 
-            prompt = prompt + "robot_mk:"
+            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot." + \
+                delimiter + prompt + "robot_mk:"
 
             print("\nPrompt:")
             print(prompt)
@@ -241,22 +250,14 @@ if __name__ == '__main__':
                 if openai_reply != None and len(openai_reply) < 240 and not DEBUG:
                     # Reply.
                     if random.choice(range(QUOTE_ODDS)) == 0:
-                        reply = re.sub(
-                            r'(@)\S+',
-                            '',
-                            openai_reply).strip()
-                        reply += ' http://twitter.com/' + \
+                        openai_reply += ' http://twitter.com/' + \
                             mention.user.screen_name + \
                             '/status/' + str(mention.id)
-                        twitter.tweet(reply)
-                        print('Quoted with \'' + reply + '\'')
+                        twitter.tweet(openai_reply)
+                        print('Quoted with \'' + openai_reply + '\'')
                     else:
-                        reply = re.sub(
-                            r'(@)\S+',
-                            '',
-                            openai_reply).strip()
-                        twitter.reply(reply, mention.id)
-                        print('Replied with \'' + reply + '\'')
+                        twitter.reply(openai_reply, mention.id)
+                        print('Replied with \'' + openai_reply + '\'')
             else:
                 print('Not replying this time.')
     else:
