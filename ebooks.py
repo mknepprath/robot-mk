@@ -143,12 +143,6 @@ if __name__ == '__main__':
 
         print('\nGetting last two mentions.')
 
-        # Get tweets from this bot to see it's already replied to the mentions.
-        bot_tweets = twitter.api.user_timeline(
-            screen_name='robot_mk',
-            count=150
-        )
-
         # Loop through the two mentions.
         for mention in source_mentions:
             # Only do this while awake, sometimes.
@@ -183,8 +177,8 @@ if __name__ == '__main__':
                         continue
 
             # Starts the prompt with some context for the bot.
-            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
-                delimiter + prompt + "robot_mk:"
+            prompt = TWEET_ACCOUNT + ":My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
+                delimiter + prompt + TWEET_ACCOUNT + ":"
 
             print("\nPrompt:")
             print(prompt)
@@ -193,10 +187,18 @@ if __name__ == '__main__':
             # Instantiate replied to false.
             replied = False
 
+            # Get tweets from this bot to see it's already replied to the mentions.
+            bot_tweets = twitter.api.user_timeline(
+                screen_name=TWEET_ACCOUNT,
+                count=150,
+                tweet_mode='extended',
+            )
+
             # Check if the current mention matches a tweet this bot has replied to.
             for tweet in bot_tweets:
                 if tweet.in_reply_to_status_id == mention.id:
-                    print('Matches a tweet bot has replied to.')
+                    print('Matches a tweet bot has replied to: \'' +
+                          tweet.full_text + '\'')
                     replied = True
 
             # If the bot is awake and has not replied to this mention, reply, sometimes.
@@ -205,14 +207,6 @@ if __name__ == '__main__':
 
                 response = openai.Completion.create(
                     engine="davinci", prompt=prompt, max_tokens=50)
-
-                # response = {
-                #     'choices': [
-                #         {
-                #             'text': 'I\'m sorry, I\'m not sure I understand. Can you rephrase that?\nOk?\nOk?\nmknepprath:ok'
-                #         }
-                #     ]
-                # }
 
                 print('OpenAI candidates:')
                 print(response["choices"][0]["text"])
