@@ -78,6 +78,7 @@ if __name__ == '__main__':
 
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
+    # 4 hour difference, so 3 = 11pm and 11 = 7am.
     awake = current_hour <= 3 or current_hour >= 11
     if awake:
         print("I'm awake. " + str(current_hour) + ":00")
@@ -119,7 +120,7 @@ if __name__ == '__main__':
 
         if openai_tweet != None and len(openai_tweet) < 240:
             if not DEBUG:
-                # twitter.tweet(openai_tweet)
+                twitter.tweet(openai_tweet)
                 print('Tweeted \'' + openai_tweet + '\'.')
             else:
                 print('Didn\'t tweet \'' + openai_tweet +
@@ -202,16 +203,16 @@ if __name__ == '__main__':
             if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
                 print('Generating replies...\n')
 
-                # response = openai.Completion.create(
-                #     engine="davinci", prompt=prompt, max_tokens=50)
+                response = openai.Completion.create(
+                    engine="davinci", prompt=prompt, max_tokens=50)
 
-                response = {
-                    'choices': [
-                        {
-                            'text': 'I\'m sorry, I\'m not sure I understand. Can you rephrase that?\nOk?\nOk?\nmknepprath:ok'
-                        }
-                    ]
-                }
+                # response = {
+                #     'choices': [
+                #         {
+                #             'text': 'I\'m sorry, I\'m not sure I understand. Can you rephrase that?\nOk?\nOk?\nmknepprath:ok'
+                #         }
+                #     ]
+                # }
 
                 print('OpenAI candidates:')
                 print(response["choices"][0]["text"])
@@ -238,10 +239,10 @@ if __name__ == '__main__':
                         openai_reply += ' http://twitter.com/' + \
                             mention.user.screen_name + \
                             '/status/' + str(mention.id)
-                        # twitter.tweet(openai_reply)
+                        twitter.tweet(openai_reply)
                         print('Quoted with \'' + openai_reply + '\'')
                     else:
-                        # twitter.reply(openai_reply, mention.id)
+                        twitter.reply(openai_reply, mention.id)
                         print('Replied with \'' + openai_reply + '\'')
             else:
                 print('Not replying this time.')
