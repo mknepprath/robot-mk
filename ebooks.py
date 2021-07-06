@@ -32,35 +32,6 @@ class TwitterAPI:
             status=status, in_reply_to_status_id=in_reply_to_status_id, auto_populate_reply_metadata=True)
 
 
-def filter_tweet(tweet):
-    # Removes things I don't want tweeted, like hashtags & links.
-
-    # Take out anything after RT or MT.
-    tweet.full_text = re.sub(r'\b(RT|MT) .+', '', tweet.full_text)
-
-    # Take out URLs, hashtags, hts, etc.
-    tweet.full_text = re.sub(
-        r'(\#|(h\/t)|(http))\S+',
-        '',
-        tweet.full_text
-    )
-    # Take out any mentions. This is separated out so we can do something
-    # smarter with it in the future.
-    tweet.full_text = re.sub(
-        r'(@)\S+',
-        '',
-        tweet.full_text
-    )
-
-    # Take out new lines.
-    # tweet.full_text = re.sub(r'\n', '', tweet.full_text)
-
-    # Take out quotes.
-    tweet.full_text = re.sub(r'\"|\(|\)', '', tweet.full_text)
-
-    return tweet.full_text
-
-
 def get_tweets(twitter, screen_name, max_id=None):
     # Gets tweets from the specified account's timeline.
 
@@ -81,9 +52,6 @@ def get_tweets(twitter, screen_name, max_id=None):
 
     # Loops through all returned tweets.
     for tweet in user_tweets:
-        # Filter tweet.
-        tweet.full_text = filter_tweet(tweet)
-
         # If the tweet has a length less than 0, skip.
         if len(tweet.full_text) != 0:
 
@@ -110,11 +78,11 @@ if __name__ == '__main__':
 
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
-    awake = True
+    awake = current_hour <= 3 or current_hour >= 11
     if awake:
-        print("I'm awake.")
+        print("I'm awake. " + str(current_hour) + ":00")
     else:
-        print("I'm asleep.")
+        print("I'm asleep. " + str(current_hour) + ":00")
 
     # Instantiates empty tweets list.
     source_tweets = []
@@ -144,20 +112,12 @@ if __name__ == '__main__':
         print('\nGenerating tweets...')
 
         response = openai.Completion.create(
-            engine="davinci", prompt=delimiter.join(source_tweets[:80]) + "." + delimiter, max_tokens=50)
+            engine="davinci", prompt=delimiter.join(source_tweets[:30]) + "." + delimiter, max_tokens=50)
         print('OpenAI candidates:')
         print(response.choices[0].text)
         openai_tweet = response.choices[0].text.split(delimiter)[0].strip()
 
-        # throw out tweets that match anything from the source account.
         if openai_tweet != None and len(openai_tweet) < 240:
-            for tweet in source_tweets:
-                if openai_tweet[:-1] not in tweet:
-                    continue
-                else:
-                    print('TOO SIMILAR: ' + openai_tweet)
-                    sys.exit()
-
             if not DEBUG:
                 twitter.tweet(openai_tweet)
                 print('Tweeted \'' + openai_tweet + '\'.')
@@ -175,16 +135,17 @@ if __name__ == '__main__':
         print(str(guess) + ' No, sorry, not this time.')
 
     if reply_guess == 0 and awake:
-        # Let's do stuff with mentions. First, let's get a couple.
+        # Let's do stuff with mentions. First, let's get a couple. Note: This means
+        # that the bot will only reply to the most recent two mentions.
         source_mentions = twitter.api.mentions_timeline(
             count=2, tweet_mode='extended')
 
         print('\nGetting last two mentions.')
 
-        # Get tweets from this bot.
-        source_compare_tweets = twitter.api.user_timeline(
+        # Get tweets from this bot to see it's already replied to the mentions.
+        bot_tweets = twitter.api.user_timeline(
             screen_name='robot_mk',
-            count=50
+            count=150
         )
 
         # Loop through the two mentions.
@@ -220,7 +181,8 @@ if __name__ == '__main__':
                             ":" + replied_to_tweet_text_no_handles + delimiter + prompt
                         continue
 
-            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot." + \
+            # Starts the prompt with some context for the bot.
+            prompt = "robot_mk:My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
                 delimiter + prompt + "robot_mk:"
 
             print("\nPrompt:")
@@ -231,24 +193,34 @@ if __name__ == '__main__':
             replied = False
 
             # Check if the current mention matches a tweet this bot has replied to.
-            for tweet in source_compare_tweets:
+            for tweet in bot_tweets:
                 if tweet.in_reply_to_status_id == mention.id:
                     print('Matches a tweet bot has replied to.')
                     replied = True
 
             # If the bot is awake and has not replied to this mention, reply, sometimes.
             if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
-                print('Generating replies...')
+                print('Generating replies...\n')
 
                 response = openai.Completion.create(
                     engine="davinci", prompt=prompt, max_tokens=50)
-                print('OpenAI candidates:')
-                print(response.choices[0].text)
-                openai_reply = response.choices[0].text.split(delimiter)[
-                    0].strip()
-                print(openai_reply)
 
-                # Throw out tweets that match anything from the source account.
+                print('OpenAI candidates:')
+                print(response["choices"][0]["text"])
+                openai_reply = response["choices"][0]["text"].split(delimiter)[
+                    0].strip()
+
+                # OpenAI prompts inlude a delimiter between lines, but sometimes forgets.
+                # If this happens, we can detect it and remove the extra lines.
+                split_by_lines = openai_reply.split("\n")
+                if len(split_by_lines) > 1:
+                    # If there are multiple lines, split up the second line.
+                    second_line_words = split_by_lines[1].split(" ")
+                    if second_line_words[0] != "" and second_line_words[0].find(":") != -1:
+                        # If the first word is not empty and contains a colon,
+                        # only use the first line.
+                        openai_reply = split_by_lines[0]
+
                 if openai_reply != None and len(openai_reply) < 240 and not DEBUG:
                     # Reply.
                     if random.choice(range(QUOTE_ODDS)) == 0:
