@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
         if openai_tweet != None and len(openai_tweet) < 240:
             if not DEBUG:
-                twitter.tweet(openai_tweet)
+                # twitter.tweet(openai_tweet)
                 print('Tweeted \'' + openai_tweet + '\'.')
             else:
                 print('Didn\'t tweet \'' + openai_tweet +
@@ -202,8 +202,16 @@ if __name__ == '__main__':
             if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
                 print('Generating replies...\n')
 
-                response = openai.Completion.create(
-                    engine="davinci", prompt=prompt, max_tokens=50)
+                # response = openai.Completion.create(
+                #     engine="davinci", prompt=prompt, max_tokens=50)
+
+                response = {
+                    'choices': [
+                        {
+                            'text': 'I\'m sorry, I\'m not sure I understand. Can you rephrase that?\nOk?\nOk?\nmknepprath:ok'
+                        }
+                    ]
+                }
 
                 print('OpenAI candidates:')
                 print(response["choices"][0]["text"])
@@ -214,12 +222,15 @@ if __name__ == '__main__':
                 # If this happens, we can detect it and remove the extra lines.
                 split_by_lines = openai_reply.split("\n")
                 if len(split_by_lines) > 1:
-                    # If there are multiple lines, split up the second line.
-                    second_line_words = split_by_lines[1].split(" ")
-                    if second_line_words[0] != "" and second_line_words[0].find(":") != -1:
-                        # If the first word is not empty and contains a colon,
-                        # only use the first line.
-                        openai_reply = split_by_lines[0]
+                    bad_line_index: int = -1
+                    for i in range(len(split_by_lines)):
+                        print(split_by_lines[i].split(" "))
+                        if split_by_lines[i].split(" ")[0].find(":") != -1:
+                            bad_line_index = i
+                            break
+                    if bad_line_index != -1:
+                        openai_reply = "\n".join(
+                            split_by_lines[:bad_line_index])
 
                 if openai_reply != None and len(openai_reply) < 240 and not DEBUG:
                     # Reply.
@@ -227,10 +238,10 @@ if __name__ == '__main__':
                         openai_reply += ' http://twitter.com/' + \
                             mention.user.screen_name + \
                             '/status/' + str(mention.id)
-                        twitter.tweet(openai_reply)
+                        # twitter.tweet(openai_reply)
                         print('Quoted with \'' + openai_reply + '\'')
                     else:
-                        twitter.reply(openai_reply, mention.id)
+                        # twitter.reply(openai_reply, mention.id)
                         print('Replied with \'' + openai_reply + '\'')
             else:
                 print('Not replying this time.')
