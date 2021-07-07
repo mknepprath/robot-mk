@@ -1,15 +1,22 @@
 import os
-import openai
 import random
 import re
 import sys
 from datetime import datetime
+import openai
 import tweepy
 from local_settings import *
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-delimiter = "\n---\n"
+DELIMITER = "\n---\n"
+DEBUG_RESPONSE = {
+    'choices': [
+        {
+            'text': 'I\'m sorry, I\'m not sure what you mean.\nOk!\nmknepprath:Ok!'
+        }
+    ]
+}
 
 
 class TwitterAPI:
@@ -78,8 +85,12 @@ if __name__ == '__main__':
 
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
-    # 4 hour difference, so 3 = 11pm and 11 = 7am.
-    awake = current_hour <= 3 or current_hour >= 11
+    # 4 hour difference.
+    # Awake if the current hour is greater than 11pm (3) and less than 7am (11).
+    if DEBUG:
+        awake = True
+    else:
+        awake = not (current_hour > 3 and current_hour < 11)
     if awake:
         print("I'm awake. " + str(current_hour) + ":00")
     else:
@@ -112,11 +123,18 @@ if __name__ == '__main__':
     if guess == 0 and awake:
         print('\nGenerating tweets...')
 
-        response = openai.Completion.create(
-            engine="davinci", prompt=delimiter.join(source_tweets[:30]) + "." + delimiter, max_tokens=50)
+        if not DEBUG:
+            response = openai.Completion.create(engine="davinci", prompt=DELIMITER.join(
+                source_tweets[:30]) + "." + DELIMITER, max_tokens=50)
+        else:
+            response = DEBUG_RESPONSE
+
         print('OpenAI candidates:')
-        print(response.choices[0].text)
-        openai_tweet = response.choices[0].text.split(delimiter)[0].strip()
+        print(response['choices'][0]['text'])
+        openai_tweet = response['choices'][0]['text'].split(DELIMITER)[
+            0].strip()
+        # Remove t.co links. Twitter blocks 'em.
+        openai_tweet = re.sub(r"https:\/\/t.co\S+", "", openai_tweet)
 
         if openai_tweet != None and len(openai_tweet) < 240:
             if not DEBUG:
@@ -133,7 +151,8 @@ if __name__ == '__main__':
 
     else:
         # Message if the random number fails.
-        print(str(guess) + ' No, sorry, not this time.')
+        if DEBUG:
+            print(str(guess) + ' No, sorry, not this time.')
 
     if reply_guess == 0 and awake:
         # Let's do stuff with mentions. First, let's get a couple. Note: This means
@@ -158,7 +177,7 @@ if __name__ == '__main__':
                 '',
                 mention.full_text).strip()
             prompt = mention.user.screen_name + \
-                ":" + mention_text_no_handles + delimiter
+                ":" + mention_text_no_handles + DELIMITER
 
             if mention.in_reply_to_status_id_str is not None:
                 replied_to_tweet = mention
@@ -173,12 +192,12 @@ if __name__ == '__main__':
                             '',
                             replied_to_tweet.full_text).strip()
                         prompt = replied_to_tweet.user.screen_name + \
-                            ":" + replied_to_tweet_text_no_handles + delimiter + prompt
+                            ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
                         continue
 
             # Starts the prompt with some context for the bot.
             prompt = TWEET_ACCOUNT + ":My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
-                delimiter + prompt + TWEET_ACCOUNT + ":"
+                DELIMITER + prompt + TWEET_ACCOUNT + ":"
 
             print("\nPrompt:")
             print(prompt)
@@ -202,16 +221,21 @@ if __name__ == '__main__':
                     replied = True
 
             # If the bot is awake and has not replied to this mention, reply, sometimes.
-            if random.choice(range(REPLY_ODDS)) == 0 and awake and not replied:
+            if (random.choice(range(REPLY_ODDS)) == 0 or DEBUG) and awake and not replied:
                 print('Generating replies...\n')
 
-                response = openai.Completion.create(
-                    engine="davinci", prompt=prompt, max_tokens=50)
+                if not DEBUG:
+                    response = openai.Completion.create(
+                        engine="davinci", prompt=prompt, max_tokens=50)
+                else:
+                    response = DEBUG_RESPONSE
 
                 print('OpenAI candidates:')
                 print(response["choices"][0]["text"])
-                openai_reply = response["choices"][0]["text"].split(delimiter)[
+                openai_reply = response["choices"][0]["text"].split(DELIMITER)[
                     0].strip()
+                # Remove t.co links. Twitter blocks 'em.
+                openai_reply = re.sub(r"https:\/\/t.co\S+", "", openai_reply)
 
                 # OpenAI prompts inlude a delimiter between lines, but sometimes forgets.
                 # If this happens, we can detect it and remove the extra lines.
@@ -219,7 +243,6 @@ if __name__ == '__main__':
                 if len(split_by_lines) > 1:
                     bad_line_index: int = -1
                     for i in range(len(split_by_lines)):
-                        print(split_by_lines[i].split(" "))
                         if split_by_lines[i].split(" ")[0].find(":") != -1:
                             bad_line_index = i
                             break
@@ -227,19 +250,28 @@ if __name__ == '__main__':
                         openai_reply = "\n".join(
                             split_by_lines[:bad_line_index])
 
-                if openai_reply != None and len(openai_reply) < 240 and not DEBUG:
+                if openai_reply != None and len(openai_reply) < 240:
                     # Reply.
                     if random.choice(range(QUOTE_ODDS)) == 0:
                         openai_reply += ' http://twitter.com/' + \
                             mention.user.screen_name + \
                             '/status/' + str(mention.id)
-                        twitter.tweet(openai_reply)
-                        print('Quoted with \'' + openai_reply + '\'')
+                        if not DEBUG:
+                            twitter.tweet(openai_reply)
+                            print('Quoted with \'' + openai_reply + '\'')
+                        else:
+                            print('Didn\'t quote \'' + openai_reply +
+                                  '\' because DEBUG is True.')
                     else:
-                        twitter.reply(openai_reply, mention.id)
-                        print('Replied with \'' + openai_reply + '\'')
+                        if not DEBUG:
+                            twitter.reply(openai_reply, mention.id)
+                            print('Replied with \'' + openai_reply + '\'')
+                        else:
+                            print('Didn\'t reply \'' + openai_reply +
+                                  '\' because DEBUG is True.')
             else:
                 print('Not replying this time.')
     else:
         # Message if the random number fails.
-        print(str(reply_guess) + ' No reply this time.')
+        if DEBUG:
+            print(str(reply_guess) + ' No reply this time.')
