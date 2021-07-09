@@ -221,7 +221,7 @@ if __name__ == '__main__':
                     replied = True
 
             # If the bot is awake and has not replied to this mention, reply, sometimes.
-            if (random.choice(range(REPLY_ODDS)) == 0 or DEBUG) and awake and not replied:
+            if (random.choice(range(4)) == 0 or DEBUG) and awake and not replied:
                 print('Generating replies...\n')
 
                 if not DEBUG:
