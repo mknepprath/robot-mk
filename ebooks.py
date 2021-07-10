@@ -91,6 +91,7 @@ if __name__ == '__main__':
         awake = True
     else:
         awake = not (current_hour > 3 and current_hour < 11)
+        awake = True
     if awake:
         print("I'm awake. " + str(current_hour) + ":00")
     else:
@@ -124,6 +125,7 @@ if __name__ == '__main__':
         print('\nGenerating tweets...')
 
         if not DEBUG:
+            random.shuffle(source_tweets)
             response = openai.Completion.create(engine="davinci", prompt=DELIMITER.join(
                 source_tweets[:30]) + "." + DELIMITER, max_tokens=50)
         else:
