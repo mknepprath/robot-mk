@@ -101,7 +101,7 @@ if __name__ == '__main__':
     source_tweets = []
     source_replies = []
 
-    if guess == 0 and awake:
+    if (guess == 0 or reply_guess == 0) and awake:
         print('Fetching tweets...')
         # Populates tweets list.
         for screen_name in SOURCE_ACCOUNTS:
@@ -196,6 +196,10 @@ if __name__ == '__main__':
                         prompt = replied_to_tweet.user.screen_name + \
                             ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
                         continue
+
+            random.shuffle(source_tweets)
+            prompt = DELIMITER.join(
+                source_tweets[:10]) + "." + DELIMITER + prompt
 
             # Starts the prompt with some context for the bot.
             prompt = TWEET_ACCOUNT + ":My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
