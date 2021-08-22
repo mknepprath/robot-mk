@@ -126,8 +126,14 @@ if __name__ == '__main__':
 
         if not DEBUG:
             random.shuffle(source_tweets)
-            response = openai.Completion.create(engine="davinci", prompt=DELIMITER.join(
-                source_tweets[:30]) + "." + DELIMITER, max_tokens=50)
+            response = openai.Completion.create(
+                engine="davinci",
+                prompt=DELIMITER.join(source_tweets[:30]) + "." + DELIMITER, temperature=0.9,
+                max_tokens=50,
+                frequency_penalty=0,
+                presence_penalty=0.6,
+                stop=[DELIMITER]
+            )
         else:
             response = DEBUG_RESPONSE
 
@@ -138,7 +144,8 @@ if __name__ == '__main__':
         # Remove t.co links. Twitter blocks 'em.
         openai_tweet = re.sub(r"https:\/\/t.co\S+", "", openai_tweet)
 
-        if openai_tweet != None and len(openai_tweet) < 240:
+        # If the tweet exists, and it's not too long, and it isn't tweeting at someone...
+        if openai_tweet != None and openai_tweet[0] != "@" and len(openai_tweet) < 240:
             if not DEBUG:
                 twitter.tweet(openai_tweet)
                 print('Tweeted \'' + openai_tweet + '\'.')
@@ -149,7 +156,7 @@ if __name__ == '__main__':
         elif openai_tweet is None:
             print('Tweet is empty, sorry.')
         else:
-            print('TOO LONG: ' + openai_tweet)
+            print('BAD TWEET: ' + openai_tweet)
 
     else:
         # Message if the random number fails.
@@ -197,13 +204,14 @@ if __name__ == '__main__':
                             ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
                         continue
 
-            random.shuffle(source_tweets)
-            prompt = DELIMITER.join(
-                source_tweets[:10]) + "." + DELIMITER + prompt
+            # random.shuffle(source_tweets)
+            # prompt = DELIMITER.join(
+            #     source_tweets[:10]) + "." + DELIMITER + prompt
 
             # Starts the prompt with some context for the bot.
-            prompt = TWEET_ACCOUNT + ":My name is Robot MK, I'm a twitter bot. I am friendly and happy. Let's chat!" + \
-                DELIMITER + prompt + TWEET_ACCOUNT + ":"
+            # The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
+            prompt = "The following is a conversation with Robot MK, a Twitter bot. Robot MK was created by Michael Knepprath. Robot MK is happy and friendly\n\n" + \
+                prompt + TWEET_ACCOUNT + ":"
 
             print("\nPrompt:")
             print(prompt)
@@ -232,7 +240,14 @@ if __name__ == '__main__':
 
                 if not DEBUG:
                     response = openai.Completion.create(
-                        engine="davinci", prompt=prompt, max_tokens=50)
+                        engine="davinci",
+                        prompt=prompt,
+                        temperature=0.9,
+                        max_tokens=50,
+                        frequency_penalty=0,
+                        presence_penalty=0.6,
+                        stop=[DELIMITER]
+                    )
                 else:
                     response = DEBUG_RESPONSE
 
