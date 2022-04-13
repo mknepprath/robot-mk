@@ -9,7 +9,7 @@ from local_settings import *
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-DELIMITER = "\n---\n"
+DELIMITER = "\n\n###\n\n"
 DEBUG_RESPONSE = {
     'choices': [
         {
@@ -235,7 +235,7 @@ if __name__ == '__main__':
                     replied = True
 
             # If the bot is awake and has not replied to this mention, reply, sometimes.
-            if (random.choice(range(4)) == 0 or DEBUG) and awake and not replied:
+            if awake and not replied:
                 print('Generating replies...\n')
 
                 if not DEBUG:
