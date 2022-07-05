@@ -9,7 +9,7 @@ from local_settings import *
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-DELIMITER = "\n\n###\n\n"
+DELIMITER = "\n#########\n"
 DEBUG_RESPONSE = {
     'choices': [
         {
@@ -37,6 +37,16 @@ class TwitterAPI:
     def reply(self, status, in_reply_to_status_id):
         self.api.update_status(
             status=status, in_reply_to_status_id=in_reply_to_status_id, auto_populate_reply_metadata=True)
+
+
+def filter_out(string, substr):
+    return [str for str in string if
+            not any(sub in str for sub in substr) and not str.startswith("@")]
+
+
+def filter_out_replies(string, substr):
+    return [str for str in string if
+            not any(sub in str for sub in substr) and str.startswith("@")]
 
 
 def get_tweets(twitter, screen_name, max_id=None):
@@ -125,10 +135,12 @@ if __name__ == '__main__':
         print('\nGenerating tweets...')
 
         if not DEBUG:
-            random.shuffle(source_tweets)
+            filtered_source_tweets = filter_out(
+                source_tweets, ["RT", "https://t.co"])
+            random.shuffle(filtered_source_tweets)
             response = openai.Completion.create(
                 engine="davinci",
-                prompt=DELIMITER.join(source_tweets[:30]) + "." + DELIMITER, temperature=0.9,
+                prompt=DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER, temperature=0.9,
                 max_tokens=50,
                 frequency_penalty=0,
                 presence_penalty=0.6,
@@ -142,13 +154,20 @@ if __name__ == '__main__':
         openai_tweet = response['choices'][0]['text'].split(DELIMITER)[
             0].strip()
         # Remove t.co links. Twitter blocks 'em.
-        openai_tweet = re.sub(r"https:\/\/t.co\S+", "", openai_tweet)
+        openai_tweet = re.sub(r"https:\/\/t.co\S+",
+                              "[outgoing link]", openai_tweet)
+
+        # Replace mention with link.
+        openai_tweet = openai_tweet.replace("@", "https://twitter.com/")
 
         # If the tweet exists, and it's not too long, and it isn't tweeting at someone...
-        if openai_tweet != None and openai_tweet[0] != "@" and len(openai_tweet) < 240:
+        if openai_tweet != None and len(openai_tweet) < 240:
             if not DEBUG:
-                twitter.tweet(openai_tweet)
-                print('Tweeted \'' + openai_tweet + '\'.')
+                if (openai_tweet != ''):
+                    twitter.tweet(openai_tweet)
+                    print('Tweeted \'' + openai_tweet + '\'.')
+                else:
+                    print('No status to tweet.')
             else:
                 print('Didn\'t tweet \'' + openai_tweet +
                       '\' because DEBUG is True.')
@@ -204,13 +223,13 @@ if __name__ == '__main__':
                             ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
                         continue
 
-            # random.shuffle(source_tweets)
-            # prompt = DELIMITER.join(
-            #     source_tweets[:10]) + "." + DELIMITER + prompt
+            reply_source_tweets = filter_out_replies(
+                source_tweets, ["RT", "https://t.co"])
+            random.shuffle(reply_source_tweets)
 
             # Starts the prompt with some context for the bot.
             # The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.
-            prompt = "The following is a conversation with Robot MK, a Twitter bot. Robot MK was created by Michael Knepprath. Robot MK is happy and friendly\n\n" + \
+            prompt = "Other replies by " + TWEET_ACCOUNT + ":\n\n" + DELIMITER.join(reply_source_tweets[:20]) + DELIMITER + "\nThe following is a conversation with " + TWEET_ACCOUNT + ", a Twitter bot. " + TWEET_ACCOUNT + " was created by Michael Knepprath. " + TWEET_ACCOUNT + " is happy and friendly.\n\n" + \
                 prompt + TWEET_ACCOUNT + ":"
 
             print("\nPrompt:")
