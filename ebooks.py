@@ -275,7 +275,8 @@ if __name__ == '__main__':
                 openai_reply = response["choices"][0]["text"].split(DELIMITER)[
                     0].strip()
                 # Remove t.co links. Twitter blocks 'em.
-                openai_reply = re.sub(r"https:\/\/t.co\S+", "", openai_reply)
+                openai_reply = re.sub(
+                    r"https:\/\/t.co\S+", "[outgoing link]", openai_reply)
 
                 # OpenAI prompts inlude a delimiter between lines, but sometimes forgets.
                 # If this happens, we can detect it and remove the extra lines.
@@ -290,7 +291,9 @@ if __name__ == '__main__':
                         openai_reply = "\n".join(
                             split_by_lines[:bad_line_index])
 
-                if openai_reply != None and len(openai_reply) < 240:
+                # Checks if the reply exists, is less than the allowable tweet
+                # length and doesn't contain a partial delimiter value.
+                if openai_reply != None and len(openai_reply) < 240 and "##" not in openai_reply:
                     # Reply.
                     if random.choice(range(QUOTE_ODDS)) == 0:
                         openai_reply += ' http://twitter.com/' + \
