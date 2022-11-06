@@ -3,8 +3,11 @@ import random
 import re
 import sys
 from datetime import datetime
+
 import openai
+import requests
 import tweepy
+
 from local_settings import *
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
@@ -37,6 +40,16 @@ class TwitterAPI:
     def reply(self, status, in_reply_to_status_id):
         self.api.update_status(
             status=status, in_reply_to_status_id=in_reply_to_status_id, auto_populate_reply_metadata=True)
+
+    def upload_media(self, filename):
+        media_response = self.api.media_upload(filename=filename)
+        return media_response
+
+    def create_media_metadata(self, media_id, alt_text):
+        self.api.create_media_metadata(media_id, alt_text=alt_text)
+
+    def tweet_with_media(self, status, media_id):
+        self.api.update_status(status=status, media_ids=[media_id])
 
 
 def filter_out(string, substr):
@@ -89,9 +102,11 @@ if __name__ == '__main__':
     if not DEBUG:
         guess = random.choice(range(ODDS))
         reply_guess = random.choice(range(REPLY_ODDS))
+        image_guess = random.choice(range(IMAGE_ODDS))
     else:
         guess = 0
         reply_guess = 0
+        image_guess = 1
 
     # Checks the current time before tweeting. This bot sleps.
     current_hour = datetime.now().hour
@@ -164,8 +179,36 @@ if __name__ == '__main__':
         if openai_tweet != None and len(openai_tweet) < 240:
             if not DEBUG:
                 if (openai_tweet != ''):
-                    twitter.tweet(openai_tweet)
-                    print('Tweeted \'' + openai_tweet + '\'.')
+                    if image_guess == 0:
+                        print('\nAdding an image...')
+                        response = openai.Image.create(
+                            prompt=openai_tweet,
+                            n=1,
+                            size="512x512"
+                        )
+                        image_url = response['data'][0]['url']
+                        # alt_text = response['data'][0]['alt_text']
+                        filename = "/tmp/temp.png"
+                        request = requests.get(image_url, stream=True)
+                        if request.status_code == 200:
+                            with open(filename, 'wb') as image:
+                                for chunk in request:
+                                    image.write(chunk)
+
+                            media_response = twitter.upload_media(
+                                filename=filename)
+                            # twitter.create_media_metadata(
+                            #     media_response.media_id, alt_text=alt_text)
+                            twitter.tweet_with_media(
+                                status=openai_tweet, media_id=media_response.media_id)
+                            print('Tweeted \'' + openai_tweet + '\' with image.')
+
+                            os.remove(filename)
+                        else:
+                            print("Unable to download image")
+                    else:
+                        twitter.tweet(openai_tweet)
+                        print('Tweeted \'' + openai_tweet + '\'.')
                 else:
                     print('No status to tweet.')
             else:

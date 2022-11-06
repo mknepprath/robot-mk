@@ -6,6 +6,7 @@ Local settings for @robot_mk.
 SOURCE_ACCOUNTS = ['mknepprath']
 ODDS = 108  # How often do you want this to run? 1/8 times?
 FAVE_ODDS = 72
+IMAGE_ODDS = 12
 REPLY_ODDS = 6
 QUOTE_ODDS = 48
 DEBUG = False  # Set this to False to start Tweeting live
