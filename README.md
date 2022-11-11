@@ -14,3 +14,6 @@ To deploy:
 2. Run `sh deploy.sh`.
 
 This will automatically bundle up the function and dependencies and deploy it to AWS Lambda.
+
+Note that `numpy` and `pandas` are not included in the deployment bundle. They must
+be added as layers to the Lambda function. Add them using the ARN here: [Layers for Python 3.9](https://github.com/keithrozario/Klayers/tree/master/deployments/python3.9).
