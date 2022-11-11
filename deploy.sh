@@ -20,7 +20,7 @@ cd ..
 aws s3 cp bundle.zip s3://robotmk
 
 # Delete the bundle locally
-rm -rf bundle
+rm -rf bundle bundle.zip
 
 # Update the Lambda function
 aws lambda update-function-code --function-name robotMk --s3-bucket robotmk --s3-key bundle.zip --region us-east-1
