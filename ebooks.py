@@ -4,13 +4,15 @@ import re
 import sys
 from datetime import datetime
 
-import openai
 import requests
 import tweepy
+from openai import api_key
+from openai.api_resources.completion import Completion
+from openai.api_resources.image import Image
 
 from local_settings import *
 
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+api_key = os.environ.get("OPENAI_API_KEY")
 
 DELIMITER = "\n#########\n"
 DEBUG_RESPONSE = {
@@ -96,7 +98,7 @@ def get_tweets(twitter, screen_name, max_id=None):
     return source_tweets, source_replies, max_id
 
 
-if __name__ == '__main__':
+def main():
     twitter = TwitterAPI()
 
     if not DEBUG:
@@ -153,7 +155,7 @@ if __name__ == '__main__':
             filtered_source_tweets = filter_out(
                 source_tweets, ["RT", "https://t.co"])
             random.shuffle(filtered_source_tweets)
-            response = openai.Completion.create(
+            response = Completion.create(
                 engine="davinci",
                 prompt=DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER, temperature=0.9,
                 max_tokens=50,
@@ -181,7 +183,7 @@ if __name__ == '__main__':
                 if (openai_tweet != ''):
                     if image_guess == 0:
                         print('\nAdding an image...')
-                        response = openai.Image.create(
+                        response = Image.create(
                             prompt=openai_tweet,
                             n=1,
                             size="512x512"
@@ -301,7 +303,7 @@ if __name__ == '__main__':
                 print('Generating replies...\n')
 
                 if not DEBUG:
-                    response = openai.Completion.create(
+                    response = Completion.create(
                         engine="davinci",
                         prompt=prompt,
                         temperature=0.9,
@@ -361,3 +363,7 @@ if __name__ == '__main__':
         # Message if the random number fails.
         if DEBUG:
             print(str(reply_guess) + ' No reply this time.')
+
+
+if __name__ == '__main__':
+    main()

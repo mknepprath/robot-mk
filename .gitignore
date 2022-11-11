@@ -3,3 +3,5 @@
 .vscode
 .env
 .env.local
+bundle
+bundle.zip
