@@ -156,7 +156,7 @@ def main():
                 source_tweets, ["RT", "https://t.co"])
             random.shuffle(filtered_source_tweets)
             response = Completion.create(
-                engine="davinci",
+                engine="text-davinci-003",
                 prompt=DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER, temperature=0.9,
                 max_tokens=50,
                 frequency_penalty=0,
