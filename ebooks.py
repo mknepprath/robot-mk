@@ -2,16 +2,17 @@ import os
 import random
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, date
 from html.parser import HTMLParser
 
 from mastodon import Mastodon
 import requests
 import openai
+import pprint as pp
 
 from local_settings import *
 
-DELIMITER = "\n#########\n"
+DELIMITER = "\n##====##\n"
 DEBUG_RESPONSE = {
     'choices': [
         {
@@ -104,6 +105,8 @@ def main():
     else:
         print("I'm asleep. " + str(current_hour) + ":00")
 
+    awake = True
+
     # Instantiates empty tweets list.
     source_tweets = []
     source_replies = []
@@ -133,18 +136,29 @@ def main():
         if not DEBUG:
             filtered_source_tweets = filter_out(
                 source_tweets, ["RT", "https://", "@"])
+            filtered_source_tweets.reverse()
             random.shuffle(filtered_source_tweets)
 
-            prompt = "Example Mastodon posts:\n\n" + DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER \
-                     + "Next Mastodon post:"
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=prompt,
-                temperature=0.9,
+            prompt = "Example posts:\n\n" + DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER \
+                     + "\n\nNext micro-post tangential to or similar to one of the topics above:"
+            system = "It is currently " + date.today().strftime("%b-%d-%Y") + ". You generate new short posts based " \
+                                                                              "on a list of posts authored by " \
+                                                                              "Michael Knepprath."
+
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": system
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
                 max_tokens=60,
                 n=1,
-                frequency_penalty=.9,
-                presence_penalty=-1.9,
                 stop=[DELIMITER]
             )
         else:
@@ -153,7 +167,10 @@ def main():
         print('OpenAI candidates:')
         print(response['choices'])
         print("")
-        openai_tweet = response['choices'][0]['text'].strip()
+        openai_tweet = response['choices'][0]['message']['content'].strip()
+        # Remove the delimiter.
+        openai_tweet = openai_tweet.replace("##====##", "").strip()
+
         # Remove t.co links. Twitter blocks 'em.
         # openai_tweet = re.sub(r"https:\/\/t.co\S+",
         #                       "[outgoing link]", openai_tweet)
@@ -225,6 +242,9 @@ def main():
 
         # Loop through the two mentions.
         for mention in source_mentions:
+
+            messages = []
+
             # Only do this while awake, sometimes.
             if random.choice(range(FAVE_ODDS)) == 0 and awake:
                 # If the mention isn't favorited, favorite it.
@@ -241,6 +261,11 @@ def main():
                 '',
                 f.text
             ).strip()
+
+            messages.insert(0, {
+                "role": "user" if mention.account.acct == "robot_mk" else "assistant",
+                "content": mention_text_no_handles
+            })
             prompt = mention.account.acct + ":" + mention_text_no_handles + DELIMITER
 
             if mention.status.in_reply_to_id is not None:
@@ -256,8 +281,12 @@ def main():
                             r'(@)\S+',
                             '',
                             f.text).strip()
+                        messages.insert(0, {
+                            "role": "user" if replied_to_tweet.account.acct == "robot_mk" else "assistant",
+                            "content": replied_to_tweet_text_no_handles
+                        })
                         prompt = replied_to_tweet.account.acct + \
-                            ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
+                                 ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
                         continue
 
             reply_source_tweets = filter_out_replies(
@@ -266,13 +295,25 @@ def main():
 
             # Starts the prompt with some context for the bot. The following is a conversation with an AI assistant.
             # The assistant is helpful, creative, clever, and very friendly.
-            prompt = "Other replies by " + BOT_ACCOUNT + ":\n\n" + DELIMITER.join(reply_source_tweets[:20]) \
-                     + DELIMITER + "\nThe following is a conversation with " + BOT_ACCOUNT + ", a Twitter bot. " \
-                     + BOT_ACCOUNT + " was created by Michael Knepprath. " + BOT_ACCOUNT \
-                     + " is happy and friendly.\n\n" + prompt + BOT_ACCOUNT + ":"
+            system = "Example reply posts by Michael Knepprath:\n\n" + DELIMITER.join(reply_source_tweets[:20]) \
+                     + DELIMITER + "\nThe following is a conversation with a human man named Michael Knepprath."
+            messages.insert(0, {
+                "role": "system",
+                "content": system
+            })
+            messages.append({
+                "role": "user",
+                "content": "What do you think I, Michael Knepprath, would say next? You were given examples of how I "
+                           "talk. Reply with just that message. It will not be a question. It may be weird. It may be "
+                           "off-topic. Do not include placeholder text, make your best guess:"
+            })
+            prompt = prompt + BOT_ACCOUNT + ":"
 
             print("\nPrompt:")
             print(prompt)
+            print("===\n")
+            print("\nMessages:")
+            pp.pprint(messages)
             print("===\n")
 
             # Instantiate replied to false.
@@ -298,21 +339,19 @@ def main():
                 print('Generating replies...\n')
 
                 if not DEBUG:
-                    response = openai.Completion.create(
-                        engine="davinci",
-                        prompt=prompt,
-                        temperature=0.9,
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=messages,
                         max_tokens=60,
-                        frequency_penalty=0,
-                        presence_penalty=0.6,
+                        n=1,
                         stop=[DELIMITER]
                     )
                 else:
                     response = DEBUG_RESPONSE
 
                 print('OpenAI candidates:')
-                print(response["choices"][0]["text"])
-                openai_reply = response["choices"][0]["text"].split(DELIMITER)[
+                print(response["choices"][0]["message"])
+                openai_reply = response["choices"][0]["message"]["content"].split(DELIMITER)[
                     0].strip()
                 # Remove t.co links. Twitter blocks 'em.
                 openai_reply = re.sub(
