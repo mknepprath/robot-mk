@@ -1,26 +1,27 @@
 #!/bin/bash
 
-# Bundle the dependencies
-pip install -t bundle -r requirements.txt --upgrade
+# Exit script on any error
+set -e
 
-# Add function code to bundle
-cp ebooks.py bundle
-cp lambda_function.py bundle
-cp local_settings.py bundle
+# Create and clear the bundle directory to avoid leftovers
+rm -rf bundle
+mkdir -p bundle
 
-# Delete dependencies hosted on AWS
-rm -rf bundle/numpy bundle/pandas bundle/numpy-*.dist-info bundle/pandas-*.dist-info
+# Bundle the dependencies for the correct platform architecture
+pip install --target bundle -r requirements.txt --platform manylinux2014_x86_64 --only-binary=:all: --upgrade
+
+# Add function code to bundle in one step
+cp {ebooks.py,lambda_function.py,local_settings.py} bundle/
+
+# Remove unnecessary files to minimize bundle size
+find bundle -type d -name 'numpy*' | xargs rm -rf
 
 # Zip the bundle
-cd bundle
-zip -r ../bundle.zip *
-cd ..
+(cd bundle && zip -r ../bundle.zip .)
 
-# Upload the bundle to S3
-aws s3 cp bundle.zip s3://robotmk
-
-# Delete the bundle locally
-rm -rf bundle bundle.zip
-
-# Update the Lambda function
+# Upload the bundle to S3 and update the Lambda function in one step
+aws s3 cp bundle.zip s3://robotmk && \
 aws lambda update-function-code --function-name robotMk --s3-bucket robotmk --s3-key bundle.zip --region us-east-1
+
+# Clean up local files
+rm -rf bundle bundle.zip
