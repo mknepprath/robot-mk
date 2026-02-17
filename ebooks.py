@@ -7,19 +7,22 @@ from html.parser import HTMLParser
 
 from mastodon import Mastodon
 import requests
-import openai
+import anthropic
 import pprint
 
 from local_settings import *
 
 DELIMITER = "\n#########\n"
 DEBUG_RESPONSE = {
-    'choices': [
-        {
-            'text': 'I\'m sorry, I\'m not sure what you mean.\nOk!\nmknepprath:Ok!'
-        }
-    ]
+    'content': 'I\'m sorry, I\'m not sure what you mean.\nOk!\nmknepprath:Ok!'
 }
+
+# Coffee-related terms to filter out for excessive coffee posting
+COFFEE_TERMS = [
+    'coffee', 'cappuccino', 'latte', 'espresso', 'caffeine', 'barista', 
+    'brew', 'brewing', 'roast', 'beans', 'grind', 'grinding', 'americano',
+    'mocha', 'frappuccino', 'cold brew', 'iced coffee', 'macchiato'
+]
 
 
 class HTMLFilter(HTMLParser):
@@ -37,6 +40,37 @@ def filter_out(string, substr):
 def filter_out_replies(string, substr):
     return [s for s in string if
             not any(sub in s for sub in substr) and s.startswith("@")]
+
+
+def contains_excessive_coffee(text, threshold=0.3):
+    """Check if text contains too many coffee references"""
+    if not text:
+        return False
+    
+    words = text.lower().split()
+    coffee_count = sum(1 for word in words if any(term in word for term in COFFEE_TERMS))
+    
+    # If more than 30% of words are coffee-related, consider it excessive
+    return len(words) > 0 and (coffee_count / len(words)) > threshold
+
+
+def filter_coffee_heavy_posts(posts, max_coffee_ratio=0.15):
+    """Filter out posts that are too coffee-heavy from training data"""
+    filtered_posts = []
+    coffee_posts = []
+    
+    for post in posts:
+        if contains_excessive_coffee(post):
+            coffee_posts.append(post)
+        else:
+            filtered_posts.append(post)
+    
+    # Allow some coffee posts but limit them
+    max_coffee_posts = max(1, int(len(posts) * max_coffee_ratio))
+    if coffee_posts:
+        filtered_posts.extend(random.sample(coffee_posts, min(len(coffee_posts), max_coffee_posts)))
+    
+    return filtered_posts
 
 
 def get_tweets(mastodon, max_id=None):
@@ -75,7 +109,11 @@ def get_tweets(mastodon, max_id=None):
 
 
 def main():
-    openai.api_key = os.environ.get("OPENAI_API_KEY")
+    # Initialize Claude API client
+    client = anthropic.Anthropic(
+        api_key=os.environ.get("ANTHROPIC_API_KEY")
+    )
+    
     mastodon = Mastodon(
         api_base_url='https://mastodon.social',
         client_id=os.environ.get('MASTODON_CLIENT_KEY'),
@@ -135,90 +173,88 @@ def main():
             filtered_source_tweets = filter_out(
                 source_tweets, ["RT", "https://", "@"])
             filtered_source_tweets.reverse()
+            
+            # Apply coffee filtering to reduce excessive coffee posting
+            filtered_source_tweets = filter_coffee_heavy_posts(filtered_source_tweets)
             random.shuffle(filtered_source_tweets)
 
-            prompt = "Example posts:\n\n" + DELIMITER.join(filtered_source_tweets[:30]) + "." + DELIMITER \
-                     + "\n\nImagine you are this author. Please predict and return what their next post would be. Do " \
-                       "not include the delimiter."
-            system = "It is currently " + date.today().strftime("%b-%d-%Y") + ". You generate new short posts based " \
-                                                                              "on a list of posts authored by " \
-                                                                              "Michael Knepprath."
+            # Enhanced prompt for better Michael Knepprath mimicry
+            examples_text = DELIMITER.join(filtered_source_tweets[:30])
+            
+            system_prompt = f"""You are Michael Knepprath (@mknepprath), a creative technologist, designer, and developer. 
 
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": system
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                max_tokens=60,
-                n=1,
-                stop=[DELIMITER]
-            )
+Your writing style characteristics:
+- Thoughtful observations about technology, design, and creativity
+- Often shares insights about web development, UI/UX, and digital products
+- Has a warm, conversational tone that's informative but approachable
+- Sometimes philosophical about the intersection of technology and humanity
+- Enjoys wordplay and clever observations
+- Occasionally shares personal moments but keeps them relatable
+- Not overly promotional or salesy
+- Uses proper grammar and punctuation
+- Rarely posts excessively about any single topic (like coffee)
+
+Today's date: {date.today().strftime("%b-%d-%Y")}
+
+Based on the writing style in the examples below, generate a new authentic post that sounds like Michael would naturally write it. Focus on his interests in design, technology, creativity, or thoughtful observations about digital life."""
+
+            user_prompt = f"""Here are recent posts by Michael Knepprath:
+
+{examples_text}
+
+Please write one new post in Michael's authentic voice and style. Keep it under 400 characters, natural and engaging, avoiding excessive focus on any single topic. Do not include the delimiter."""
+
+            try:
+                response = client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=100,
+                    system=system_prompt,
+                    messages=[{
+                        "role": "user", 
+                        "content": user_prompt
+                    }]
+                )
+                claude_response = {"content": response.content[0].text}
+            except Exception as e:
+                print(f"Error calling Claude API: {e}")
+                claude_response = DEBUG_RESPONSE
         else:
-            response = DEBUG_RESPONSE
+            claude_response = DEBUG_RESPONSE
 
-        print('OpenAI candidates:')
-        print(response['choices'])
+        print('Claude candidates:')
+        print(claude_response['content'])
         print("")
-        openai_tweet = response['choices'][0]['message']['content'].strip()
-        # Remove the delimiter.
-        openai_tweet = openai_tweet.replace("##====##", "").strip()
+        claude_tweet = claude_response['content'].strip()
+        
+        # Remove the delimiter if it somehow got included
+        claude_tweet = claude_tweet.replace(DELIMITER, "").strip()
+        
+        # Additional check: reject if the generated post is too coffee-heavy
+        if contains_excessive_coffee(claude_tweet, threshold=0.4):
+            print(f'Generated post too coffee-heavy, skipping: {claude_tweet}')
+            claude_tweet = None
 
         # If the tweet exists, and it's not too long, and it isn't tweeting at someone...
-        if openai_tweet is not None and len(openai_tweet) < 480:
+        if claude_tweet is not None and len(claude_tweet) < 480:
             if not DEBUG:
-                if openai_tweet != '':
+                if claude_tweet != '':
                     if image_guess == 0:
-                        print('\nAdding an image...')
-                        response = openai.Image.create(
-                            prompt=openai_tweet,
-                            n=1,
-                            size="512x512"
-                        )
-                        image_url = response['data'][0]['url']
-                        # alt_text = response['data'][0]['alt_text']
-                        filename = "/tmp/temp.png"
-                        request = requests.get(image_url, stream=True)
-                        if request.status_code == 200:
-                            with open(filename, 'wb') as image:
-                                for chunk in request:
-                                    image.write(chunk)
-
-                            # Mastodon media post
-                            mastodon_media_response = mastodon.media_post(
-                                filename,
-                                description='I\'m a bot, sorry'
-                            )
-                            if mastodon_media_response.id:
-                                mastodon.status_post(
-                                    status=openai_tweet,
-                                    media_ids=[mastodon_media_response.id]
-                                )
-                            print('Posted \'' + openai_tweet + '\' with image.')
-
-                            os.remove(filename)
-                        else:
-                            print("Unable to download image")
-                    else:
-                        # Mastodon post
-                        mastodon.status_post(status=openai_tweet)
-                        print('Posted \'' + openai_tweet + '\'.')
+                        print('\nSkipping image generation for now (Claude doesn\'t have DALL-E equivalent)...')
+                        # TODO: Could integrate with other image generation services if needed
+                    
+                    # Mastodon post
+                    mastodon.status_post(status=claude_tweet)
+                    print('Posted \'' + claude_tweet + '\'.')
                 else:
                     print('No status to post.')
             else:
-                print('Didn\'t post \'' + openai_tweet +
+                print('Didn\'t post \'' + claude_tweet +
                       '\' because DEBUG is True.')
 
-        elif openai_tweet is None:
-            print('Post is empty, sorry.')
+        elif claude_tweet is None:
+            print('Post is empty or filtered out, sorry.')
         else:
-            print('BAD POST: ' + openai_tweet)
+            print('BAD POST: ' + claude_tweet)
 
     else:
         # Message if the random number fails.
@@ -246,20 +282,21 @@ def main():
             f = HTMLFilter()
             f.feed(mention.status.content)
 
-            # Start building prompt.
+            # Start building conversation context.
             mention_text_no_handles = re.sub(
                 r'(@)\S+',
                 '',
                 f.text
             ).strip()
 
-            messages.insert(0, {
-                "role": "user" if mention.account.acct != "robot_mk" else "assistant",
+            conversation = []
+            current_message = {
+                "role": "user",
                 "content": mention_text_no_handles
-            })
+            }
+            conversation.append(current_message)
 
-            prompt = mention.account.acct + ":" + mention_text_no_handles + DELIMITER
-
+            # Build conversation thread if this is a reply
             if mention.status.in_reply_to_id is not None:
                 replied_to_tweet = mention.status
                 while True:
@@ -274,36 +311,35 @@ def main():
                             '',
                             f.text).strip()
 
-                        messages.insert(0, {
-                            "role": "user" if replied_to_tweet.account.acct != "robot_mk" else "assistant",
+                        role = "assistant" if replied_to_tweet.account.acct == "robot_mk" else "user"
+                        conversation.insert(0, {
+                            "role": role,
                             "content": replied_to_tweet_text_no_handles
                         })
-
-                        prompt = replied_to_tweet.account.acct + \
-                                 ":" + replied_to_tweet_text_no_handles + DELIMITER + prompt
-                        continue
 
             reply_source_tweets = filter_out_replies(
                 source_tweets, ["RT", "https://t.co"])
             random.shuffle(reply_source_tweets)
 
-            pprint.pprint(reply_source_tweets[:10])
+            # Enhanced system prompt for replies
+            reply_examples = DELIMITER.join(reply_source_tweets[:20])
+            system_prompt = f"""You are Michael Knepprath (@mknepprath), responding to a conversation. 
 
-            # Starts the prompt with some context for the bot. The following is a conversation with an AI assistant.
-            # The assistant is helpful, creative, clever, and very friendly.
-            system = "Example reply posts by Michael Knepprath:\n\n" + DELIMITER.join(reply_source_tweets[:20]) \
-                     + DELIMITER + "\nThe following is a conversation with a human man named Michael Knepprath."
-            messages.insert(0, {
-                "role": "system",
-                "content": system
-            })
-            prompt = prompt + BOT_ACCOUNT + ":"
+Your reply style:
+- Thoughtful and engaging responses
+- Builds on the conversation naturally  
+- Maintains your voice: knowledgeable about tech/design but approachable
+- Sometimes adds helpful insights or asks follow-up questions
+- Keeps responses conversational, not overly formal
+- Often connects topics to broader themes about technology, creativity, or design
 
-            print("\nPrompt:")
-            print(prompt)
-            print("===\n")
-            print("\nMessages:")
-            pprint.pprint(messages)
+Here are examples of your actual replies:
+{reply_examples}
+
+Respond as Michael would, staying true to his conversational style and interests."""
+
+            print("\nConversation context:")
+            pprint.pprint(conversation)
             print("===\n")
 
             # Instantiate replied to false.
@@ -329,27 +365,33 @@ def main():
                 print('Generating replies...\n')
 
                 if not DEBUG:
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=messages,
-                        max_tokens=60,
-                        n=1,
-                        stop=[DELIMITER]
-                    )
+                    try:
+                        response = client.messages.create(
+                            model="claude-3-5-sonnet-20241022",
+                            max_tokens=100,
+                            system=system_prompt,
+                            messages=conversation
+                        )
+                        claude_response = {"content": response.content[0].text}
+                    except Exception as e:
+                        print(f"Error calling Claude API for reply: {e}")
+                        claude_response = DEBUG_RESPONSE
                 else:
-                    response = DEBUG_RESPONSE
+                    claude_response = DEBUG_RESPONSE
 
-                print('OpenAI candidates:')
-                print(response["choices"][0]["message"])
-                openai_reply = response["choices"][0]["message"]["content"].split(DELIMITER)[
-                    0].strip()
+                print('Claude candidates:')
+                print(claude_response["content"])
+                claude_reply = claude_response["content"].strip()
+                
+                # Remove any delimiter artifacts
+                claude_reply = claude_reply.split(DELIMITER)[0].strip()
+                
                 # Remove t.co links. Twitter blocks 'em.
-                openai_reply = re.sub(
-                    r"https:\/\/t.co\S+", "[outgoing link]", openai_reply)
+                claude_reply = re.sub(
+                    r"https:\/\/t.co\S+", "[outgoing link]", claude_reply)
 
-                # OpenAI prompts include a delimiter between lines, but sometimes forgets.
-                # If this happens, we can detect it and remove the extra lines.
-                split_by_lines = openai_reply.split("\n")
+                # Clean up any formatting artifacts
+                split_by_lines = claude_reply.split("\n")
                 if len(split_by_lines) > 1:
                     bad_line_index: int = -1
                     for i in range(len(split_by_lines)):
@@ -357,28 +399,20 @@ def main():
                             bad_line_index = i
                             break
                     if bad_line_index != -1:
-                        openai_reply = "\n".join(
+                        claude_reply = "\n".join(
                             split_by_lines[:bad_line_index])
 
-                # Checks if the reply exists, is less than the allowable tweet
-                # length and doesn't contain a partial delimiter value.
-                if openai_reply is not None and len(openai_reply) < 240 and "##" not in openai_reply:
-                    # Reply.
-                    # FIXME: Disabling quote, not supported by Mastodon at the moment.
-                    # if random.choice(range(QUOTE_ODDS)) == 0:
-                    #     if not DEBUG:
-                    #         mastodon.status_post(status=openai_reply, quote_id=mention.status.id)
-                    #         print('Quoted with \'' + openai_reply + '\'')
-                    #     else:
-                    #         print('Didn\'t quote \'' + openai_reply +
-                    #               '\' because DEBUG is True.')
-                    # else:
+                # Checks if the reply exists, is less than the allowable length 
+                # and doesn't contain delimiter artifacts.
+                if claude_reply and len(claude_reply) < 240 and DELIMITER not in claude_reply:
                     if not DEBUG:
-                        mastodon.status_post(status=openai_reply, in_reply_to_id=mention.status.id)
-                        print('Replied with \'' + openai_reply + '\'')
+                        mastodon.status_post(status=claude_reply, in_reply_to_id=mention.status.id)
+                        print('Replied with \'' + claude_reply + '\'')
                     else:
-                        print('Didn\'t reply \'' + openai_reply +
+                        print('Didn\'t reply \'' + claude_reply +
                               '\' because DEBUG is True.')
+                else:
+                    print('Reply rejected - too long, empty, or contains artifacts')
             else:
                 print('Not replying this time.')
     else:

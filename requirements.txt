@@ -1,3 +1,4 @@
-openai
-Mastodon.py
-pandas
+anthropic>=0.40.0
+Mastodon.py>=1.8.1
+pandas>=2.2.0
+requests>=2.32.0
