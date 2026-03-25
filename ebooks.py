@@ -459,6 +459,204 @@ def main():
         except Exception as e:
             print(f'Error with sibling bot commentary: {e}')
 
+    # Occasionally reply to @mknepprath's own posts
+    if awake and random.choice(range(16)) == 0:
+        print('\nChecking if I should reply to @mknepprath...')
+        try:
+            recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
+            bot_statuses = mastodon.account_statuses(id=BOT_ID, limit=50)
+            replied_to_ids = {s.in_reply_to_id for s in bot_statuses if s.in_reply_to_id}
+
+            for post in recent:
+                if post.id not in replied_to_ids and not post.in_reply_to_id:
+                    f = HTMLFilter()
+                    f.feed(post.content)
+                    post_text = f.text.strip()
+                    if not post_text:
+                        continue
+
+                    reply_system = (
+                        SYSTEM_PROMPT + "\n\n"
+                        "You are replying to a post by the real @mknepprath — the person you're "
+                        "a doppelganger of. This is your chance to riff on what he said. "
+                        "Be playful, deadpan, or just react. You're basically his echo with opinions. "
+                        "Keep it very short."
+                    )
+
+                    reply_prompt = (
+                        f"Here's what @mknepprath posted:\n\n"
+                        f"{post_text[:300]}\n\n"
+                        "Write a short reply. Just the text, nothing else."
+                    )
+
+                    reply = generate(reply_system, reply_prompt, max_tokens=80)
+                    if reply.startswith('"') and reply.endswith('"'):
+                        reply = reply[1:-1]
+
+                    if reply and len(reply) < 240:
+                        if not DEBUG:
+                            mastodon.status_post(status=reply, in_reply_to_id=post.id)
+                            print(f'Replied to @mknepprath: {reply}')
+                        else:
+                            print(f'Would reply to @mknepprath: {reply}')
+                    break
+        except Exception as e:
+            print(f'Error replying to @mknepprath: {e}')
+
+    # Follow-back management: follow anyone who follows us, unfollow anyone who unfollowed
+    if awake and random.choice(range(6)) == 0:
+        print('\nManaging follows...')
+        try:
+            followers = mastodon.account_followers(id=BOT_ID, limit=80)
+            following = mastodon.account_following(id=BOT_ID, limit=80)
+
+            follower_ids = {f.id for f in followers}
+            following_ids = {f.id for f in following}
+
+            # Follow back new followers
+            for follower in followers:
+                if follower.id not in following_ids and not follower.bot:
+                    mastodon.account_follow(id=follower.id)
+                    print(f'Followed back: @{follower.acct}')
+
+            # Unfollow anyone who unfollowed us (except the source account)
+            for account in following:
+                if account.id not in follower_ids and str(account.id) != SOURCE_ID:
+                    mastodon.account_unfollow(id=account.id)
+                    print(f'Unfollowed: @{account.acct}')
+        except Exception as e:
+            print(f'Error managing follows: {e}')
+
+    # Rarely reply to a follower's recent post (they followed us = consent)
+    if awake and random.choice(range(48)) == 0:
+        print('\nChecking followers timeline for something to reply to...')
+        try:
+            following = mastodon.account_following(id=BOT_ID, limit=80)
+            # Skip the source account and other bots
+            real_follows = [f for f in following if str(f.id) != SOURCE_ID
+                           and str(f.id) != BOT_ID and not f.bot]
+
+            if real_follows:
+                target = random.choice(real_follows)
+                their_posts = mastodon.account_statuses(id=target.id, limit=5, exclude_replies=True)
+
+                bot_statuses = mastodon.account_statuses(id=BOT_ID, limit=50)
+                replied_to_ids = {s.in_reply_to_id for s in bot_statuses if s.in_reply_to_id}
+
+                for post in their_posts:
+                    if post.id not in replied_to_ids and not post.in_reply_to_id:
+                        f = HTMLFilter()
+                        f.feed(post.content)
+                        post_text = f.text.strip()
+                        if not post_text or len(post_text) < 10:
+                            continue
+
+                        reply_system = (
+                            SYSTEM_PROMPT + "\n\n"
+                            f"You are replying to a post by @{target.acct}, someone who follows you. "
+                            "Be casual and friendly. Just a quick genuine reaction. Keep it very short."
+                        )
+
+                        reply_prompt = (
+                            f"Here's what @{target.acct} posted:\n\n"
+                            f"{post_text[:300]}\n\n"
+                            "Write a short reply. Just the text, nothing else."
+                        )
+
+                        reply = generate(reply_system, reply_prompt, max_tokens=60)
+                        if reply.startswith('"') and reply.endswith('"'):
+                            reply = reply[1:-1]
+
+                        if reply and len(reply) < 200:
+                            if not DEBUG:
+                                mastodon.status_post(status=reply, in_reply_to_id=post.id)
+                                print(f'Replied to @{target.acct}: {reply}')
+                            else:
+                                print(f'Would reply to @{target.acct}: {reply}')
+                        break
+        except Exception as e:
+            print(f'Error replying to follower: {e}')
+
+    # Rarely review own post history
+    if awake and random.choice(range(72)) == 0:
+        print('\nReviewing my own post history...')
+        try:
+            my_posts = mastodon.account_statuses(id=BOT_ID, limit=20, exclude_replies=True)
+            # Pick a post from a few days ago
+            older_posts = [p for p in my_posts[5:] if not p.reblog]
+
+            if older_posts:
+                target_post = random.choice(older_posts)
+                f = HTMLFilter()
+                f.feed(target_post.content)
+                old_text = f.text.strip()
+
+                if old_text:
+                    review_system = (
+                        SYSTEM_PROMPT + "\n\n"
+                        "You are looking back at one of your own previous posts and reacting to it. "
+                        "Be honest — was it good? cringe? funny? did it age well? "
+                        "This is a self-review. Be terse and real. Keep it very short."
+                    )
+
+                    review_prompt = (
+                        f"Here's one of your old posts:\n\n"
+                        f"{old_text[:300]}\n\n"
+                        "Write a brief self-review as a reply. Just the text, nothing else."
+                    )
+
+                    review = generate(review_system, review_prompt, max_tokens=60)
+                    if review.startswith('"') and review.endswith('"'):
+                        review = review[1:-1]
+
+                    if review and len(review) < 240:
+                        if not DEBUG:
+                            mastodon.status_post(status=review, in_reply_to_id=target_post.id)
+                            print(f'Self-review of "{old_text[:40]}": {review}')
+                        else:
+                            print(f'Would self-review "{old_text[:40]}": {review}')
+        except Exception as e:
+            print(f'Error reviewing post history: {e}')
+
+    # The count — track an arbitrary thing with no context
+    if awake and random.choice(range(24)) == 0:
+        print('\nChecking the count...')
+        try:
+            activity_context = fetch_activity_feed()
+            if activity_context:
+                count_system = (
+                    SYSTEM_PROMPT + "\n\n"
+                    "You have an obsessive habit of counting arbitrary things based on "
+                    "Michael's recent activity. Pick something oddly specific to count and "
+                    "post the count with zero context. Examples of the format:\n"
+                    "- days since last hitchcock movie: 4\n"
+                    "- consecutive runs under 6 miles: 3\n"
+                    "- films watched this month: 7\n"
+                    "- pokemon cards posted since last shiny: 12\n\n"
+                    "Pick something real from the activity feed. Be specific and a little weird. "
+                    "Just the count line, nothing else. lowercase, no punctuation at the end."
+                )
+
+                now_str = datetime.now(ET).strftime("%A, %B %d, %Y")
+                count_prompt = (
+                    f"Current date: {now_str}\n\n"
+                    f"Recent activity:\n{activity_context}\n\n"
+                    "Post one count. Just the text, nothing else."
+                )
+
+                count = generate(count_system, count_prompt, max_tokens=40)
+                if count.startswith('"') and count.endswith('"'):
+                    count = count[1:-1]
+
+                if count and len(count) < 200:
+                    if not DEBUG:
+                        mastodon.status_post(status=count)
+                        print(f'The count: {count}')
+                    else:
+                        print(f'Would post count: {count}')
+        except Exception as e:
+            print(f'Error with the count: {e}')
+
 
 if __name__ == '__main__':
     main()
