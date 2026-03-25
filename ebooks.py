@@ -98,8 +98,8 @@ def fetch_activity_feed():
         with urlopen(ACTIVITY_URL) as response:
             data = json.loads(response.read().decode())
 
-        # Skip toots/skeets (already in Mastodon posts) and repos (noisy)
-        skip_types = {"TOOT", "SKEET", "REPO"}
+        # Skip toots/skeets (already in Mastodon posts), repos (noisy), and robot posts (that's us)
+        skip_types = {"TOOT", "SKEET", "REPO", "ROBOT"}
         items = [item for item in data if item.get("type") not in skip_types]
 
         lines = []
@@ -263,15 +263,13 @@ def main():
         time_context = now_et.strftime("%A, %B %d, %Y at %I:%M %p ET")
 
         activity_section = ""
-        if activity_context:
+        if activity_context and random.choice(range(4)) == 0:
+            # Only include activity feed 25% of the time
             activity_section = (
-                f"For background context only — here's what Michael has been up to lately:\n\n"
+                f"Michael has been up to this stuff lately (background only):\n\n"
                 f"{activity_context}\n\n"
-                "This is just context. Most of the time, DON'T reference it directly. "
-                "Only occasionally (maybe 1 in 4 posts) should you draw from it, and when "
-                "you do, be subtle — a passing thought, not a review or summary. "
-                "The majority of posts should be original observations, opinions, or vibes "
-                "that have nothing to do with the activity feed.\n\n"
+                "You MAY reference one of these things in passing, but keep it subtle. "
+                "A passing thought, not a review.\n\n"
             )
 
         prompt = (
