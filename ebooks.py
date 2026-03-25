@@ -360,6 +360,24 @@ def main():
         if DEBUG:
             print(f'{reply_guess} No reply this time.')
 
+    # Occasionally boost a recent @mknepprath post
+    if awake and random.choice(range(BOOST_ODDS)) == 0:
+        print('\nChecking for posts to boost...')
+        try:
+            recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
+            # Find a post we haven't already boosted
+            for post in recent:
+                if not post.reblogged and not post.in_reply_to_id:
+                    mastodon.status_reblog(id=post.id)
+                    f = HTMLFilter()
+                    f.feed(post.content)
+                    print(f'Boosted: {f.text[:80]}')
+                    break
+            else:
+                print('No new posts to boost.')
+        except Exception as e:
+            print(f'Error boosting: {e}')
+
 
 if __name__ == '__main__':
     main()
