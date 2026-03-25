@@ -427,12 +427,11 @@ def main():
 
                     commentary_system = (
                         SYSTEM_PROMPT + "\n\n"
-                        f"You are commenting on a post from {bot_info['handle']}, "
-                        f"one of Michael's other Mastodon bots. {bot_info['context']}\n\n"
-                        "Write a brief, casual comment about this post — like you're a fan of "
-                        "your creator's other projects. Be genuine, not sycophantic. "
-                        "Sometimes just a quick reaction, sometimes a fun observation. "
-                        "Keep it short. The post URL will be appended automatically."
+                        f"You are commenting on a post from {bot_info['handle']}. "
+                        f"{bot_info['context']} You made this bot — it's your project. "
+                        "React naturally, the way you'd react to your own bot doing its thing. "
+                        "Maybe you think the output is funny, or mid, or you have a take on the content. "
+                        "Be honest. Keep it short. The post URL will be appended automatically."
                     )
 
                     commentary_prompt = (
