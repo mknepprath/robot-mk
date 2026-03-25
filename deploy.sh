@@ -11,7 +11,7 @@ mkdir -p bundle
 pip install --target bundle -r requirements.txt --platform manylinux2014_x86_64 --python-version 3.9 --only-binary=:all: --upgrade
 
 # Add function code to bundle in one step
-cp {ebooks.py,lambda_function.py,local_settings.py} bundle/
+cp {ebooks.py,lambda_function.py,local_settings.py,voice_samples.json} bundle/
 
 # Zip the bundle
 (cd bundle && zip -r ../bundle.zip .)

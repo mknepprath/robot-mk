@@ -81,6 +81,16 @@ BAD examples (DO NOT write like this):
 
 ACTIVITY_URL = "https://mknepprath.com/api/v1/activity?max_results=30&min_rating=0"
 
+# Load voice samples from Twitter archive
+VOICE_SAMPLES = []
+try:
+    voice_path = os.path.join(os.path.dirname(__file__), 'voice_samples.json')
+    with open(voice_path, 'r') as f:
+        VOICE_SAMPLES = json.load(f)
+    print(f'Loaded {len(VOICE_SAMPLES)} voice samples')
+except Exception:
+    print('No voice samples found')
+
 
 def fetch_activity_feed():
     """Fetch recent activity from mknepprath.com and format as context."""
@@ -166,6 +176,18 @@ def get_posts(mastodon, max_id=None):
     return source_posts, source_replies, max_id
 
 
+def system_with_voice(extra="", num_samples=25):
+    """Build a system prompt with random voice samples included."""
+    voice = ""
+    if VOICE_SAMPLES:
+        samples = random.sample(VOICE_SAMPLES, min(num_samples, len(VOICE_SAMPLES)))
+        voice = (
+            "\n\nREAL POSTS by Michael from his archive — this is his actual voice:\n"
+            + "\n".join([f"- {s}" for s in samples])
+        )
+    return SYSTEM_PROMPT + voice + ("\n\n" + extra if extra else "")
+
+
 def generate(system, prompt, max_tokens=100):
     response = client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -233,10 +255,10 @@ def main():
         if activity_context:
             print(f'Got activity feed ({activity_context.count(chr(10)) + 1} items)')
 
+        # Recent Mastodon posts (for recency context, not voice)
         filtered = filter_out(source_posts, ["RT", "https://", "@"])
         random.shuffle(filtered)
-
-        previous_posts = "\n".join([f"- {post}" for post in filtered[:30]])
+        recent_section = "\n".join([f"- {post}" for post in filtered[:10]])
 
         time_context = now_et.strftime("%A, %B %d, %Y at %I:%M %p ET")
 
@@ -255,15 +277,15 @@ def main():
         prompt = (
             f"Current date and time: {time_context}\n\n"
             f"{activity_section}"
-            f"Here are some of Michael's actual recent posts for voice reference:\n\n"
-            f"{previous_posts}\n\n"
-            "Write one new post in this exact voice. Be aware of the current date/time "
-            "and recent activity — it can inform the post naturally but don't force it. "
-            "Many posts have nothing to do with current events or activity.\n\n"
+            f"Here are some of his recent Mastodon posts for context on what he's been talking about lately:\n\n"
+            f"{recent_section}\n\n"
+            "Write one new post in this exact voice. Match the tone, length, and style of "
+            "the archive posts in the system prompt. Be aware of the current date/time and "
+            "recent activity but don't force it. Many posts have nothing to do with current events.\n\n"
             "Just the post text, nothing else. No quotes around it."
         )
 
-        generated = generate(SYSTEM_PROMPT, prompt, max_tokens=120)
+        generated = generate(system_with_voice(), prompt, max_tokens=120)
 
         # Strip quotes if the model wraps the output
         if generated.startswith('"') and generated.endswith('"'):
@@ -335,10 +357,7 @@ def main():
                     random.shuffle(filtered)
                     previous_posts = "\n".join([f"- {post}" for post in filtered[:20]])
 
-                    reply_system = (
-                        SYSTEM_PROMPT + "\n\n"
-                        f"Here are some of Michael's recent posts for voice reference:\n\n"
-                        f"{previous_posts}\n\n"
+                    reply_system = system_with_voice(
                         "You are replying to someone. Keep it short, casual, lowercase. "
                         "Often just a few words. Think 'heck yeah' or 'oh nice' or a quick genuine reaction."
                     )
@@ -438,8 +457,7 @@ def main():
                     if not post_text:
                         continue
 
-                    commentary_system = (
-                        SYSTEM_PROMPT + "\n\n"
+                    commentary_system = system_with_voice(
                         f"You are commenting on a post from {bot_info['handle']}. "
                         f"{bot_info['context']} You made this bot — it's your project. "
                         "React naturally, the way you'd react to your own bot doing its thing. "
@@ -488,8 +506,7 @@ def main():
                     if not post_text:
                         continue
 
-                    reply_system = (
-                        SYSTEM_PROMPT + "\n\n"
+                    reply_system = system_with_voice(
                         "You are replying to a post by the real @mknepprath — the person you're "
                         "a doppelganger of. This is your chance to riff on what he said. "
                         "Be playful, deadpan, or just react. You're basically his echo with opinions. "
@@ -564,8 +581,7 @@ def main():
                         if not post_text or len(post_text) < 10:
                             continue
 
-                        reply_system = (
-                            SYSTEM_PROMPT + "\n\n"
+                        reply_system = system_with_voice(
                             f"You are replying to a post by @{target.acct}, someone who follows you. "
                             "Be casual and friendly. Just a quick genuine reaction. Keep it very short."
                         )
@@ -605,8 +621,7 @@ def main():
                 old_text = f.text.strip()
 
                 if old_text:
-                    review_system = (
-                        SYSTEM_PROMPT + "\n\n"
+                    review_system = system_with_voice(
                         "You are looking back at one of your own previous posts and reacting to it. "
                         "Be honest — was it good? cringe? funny? did it age well? "
                         "This is a self-review. Be terse and real. Keep it very short."
@@ -637,8 +652,7 @@ def main():
         try:
             activity_context = fetch_activity_feed()
             if activity_context:
-                count_system = (
-                    SYSTEM_PROMPT + "\n\n"
+                count_system = system_with_voice(
                     "You have an obsessive habit of counting arbitrary things based on "
                     "Michael's recent activity. Pick something oddly specific to count and "
                     "post the count with zero context. Examples of the format:\n"
