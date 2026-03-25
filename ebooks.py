@@ -365,7 +365,6 @@ def main():
         print('\nChecking for posts to boost...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
-            # Find a post we haven't already boosted
             for post in recent:
                 if not post.reblogged and not post.in_reply_to_id:
                     mastodon.status_reblog(id=post.id)
@@ -377,6 +376,89 @@ def main():
                 print('No new posts to boost.')
         except Exception as e:
             print(f'Error boosting: {e}')
+
+    # Occasionally share a post from one of Michael's bot accounts with commentary
+    SIBLING_BOTS = {
+        "109447224294183229": {
+            "handle": "@EveryPkmnCard",
+            "context": "Posts a new Pokemon card every hour. Michael built this bot.",
+        },
+        "109852410462840995": {
+            "handle": "@PokemonFacts",
+            "context": "Posts Pokemon facts. Another one of Michael's bots.",
+        },
+        "113479454947259743": {
+            "handle": "@boutbot",
+            "context": "Bot for Who Goes There?, a social deduction game Michael built.",
+        },
+        "113479368818279476": {
+            "handle": "@familiarlilt",
+            "context": "Bot for Lilt, a text adventure game Michael built.",
+        },
+        "113490843400044713": {
+            "handle": "@designprompts",
+            "context": "Posts design prompts and challenges. Another Michael creation.",
+        },
+    }
+
+    if awake and random.choice(range(BOOST_ODDS)) == 0:
+        print('\nChecking sibling bots for commentary boost...')
+        try:
+            bot_id = random.choice(list(SIBLING_BOTS.keys()))
+            bot_info = SIBLING_BOTS[bot_id]
+            recent = mastodon.account_statuses(id=bot_id, limit=5, exclude_replies=True)
+
+            # Check our recent posts to avoid commenting on the same thing twice
+            my_recent = mastodon.account_statuses(id=BOT_ID, limit=30)
+            recent_urls = set()
+            for s in my_recent:
+                f = HTMLFilter()
+                f.feed(s.content)
+                recent_urls.add(f.text)
+
+            for post in recent:
+                if post.url and not any(post.url in u for u in recent_urls):
+                    f = HTMLFilter()
+                    f.feed(post.content)
+                    post_text = f.text.strip()
+
+                    if not post_text:
+                        continue
+
+                    commentary_system = (
+                        SYSTEM_PROMPT + "\n\n"
+                        f"You are commenting on a post from {bot_info['handle']}, "
+                        f"one of Michael's other Mastodon bots. {bot_info['context']}\n\n"
+                        "Write a brief, casual comment about this post — like you're a fan of "
+                        "your creator's other projects. Be genuine, not sycophantic. "
+                        "Sometimes just a quick reaction, sometimes a fun observation. "
+                        "Keep it short. The post URL will be appended automatically."
+                    )
+
+                    commentary_prompt = (
+                        f"Here's the post from {bot_info['handle']}:\n\n"
+                        f"{post_text[:300]}\n\n"
+                        "Write a short comment. Just the text, nothing else."
+                    )
+
+                    commentary = generate(commentary_system, commentary_prompt, max_tokens=80)
+
+                    if commentary.startswith('"') and commentary.endswith('"'):
+                        commentary = commentary[1:-1]
+
+                    status = f"{commentary}\n\n{post.url}"
+
+                    if len(status) < 480:
+                        if not DEBUG:
+                            mastodon.status_post(status=status)
+                            print(f'Commentary on {bot_info["handle"]}: {commentary}')
+                        else:
+                            print(f'Would comment on {bot_info["handle"]}: {commentary}')
+                    break
+            else:
+                print(f'No new posts from {bot_info["handle"]} to comment on.')
+        except Exception as e:
+            print(f'Error with sibling bot commentary: {e}')
 
 
 if __name__ == '__main__':
