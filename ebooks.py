@@ -176,8 +176,27 @@ def get_posts(mastodon, max_id=None):
     return source_posts, source_replies, max_id
 
 
-def system_with_voice(extra="", num_samples=25):
-    """Build a system prompt with random voice samples included."""
+def get_bot_recent_posts(mastodon, limit=15):
+    """Fetch robot_mk's own recent posts for conversational memory."""
+    try:
+        statuses = mastodon.account_statuses(id=BOT_ID, limit=limit, exclude_replies=True)
+        posts = []
+        for s in statuses:
+            if s.reblog:
+                continue
+            f = HTMLFilter()
+            f.feed(s.content)
+            text = f.text.strip()
+            if text:
+                posts.append(text)
+        return posts
+    except Exception as e:
+        print(f"Error fetching bot's own posts: {e}")
+        return []
+
+
+def system_with_voice(extra="", num_samples=25, bot_memory=None):
+    """Build a system prompt with random voice samples and conversational memory."""
     voice = ""
     if VOICE_SAMPLES:
         samples = random.sample(VOICE_SAMPLES, min(num_samples, len(VOICE_SAMPLES)))
@@ -185,7 +204,18 @@ def system_with_voice(extra="", num_samples=25):
             "\n\nREAL POSTS by Michael from his archive — this is his actual voice:\n"
             + "\n".join([f"- {s}" for s in samples])
         )
-    return SYSTEM_PROMPT + voice + ("\n\n" + extra if extra else "")
+
+    memory = ""
+    if bot_memory:
+        memory = (
+            "\n\nYOUR OWN RECENT POSTS — this is what you've been saying lately. "
+            "Use this to maintain continuity. Don't repeat yourself. You can follow up "
+            "on previous thoughts, reference things you've already mentioned, or let "
+            "running threads develop naturally. But never copy or rephrase a recent post:\n"
+            + "\n".join([f"- {p}" for p in bot_memory])
+        )
+
+    return SYSTEM_PROMPT + voice + memory + ("\n\n" + extra if extra else "")
 
 
 def generate(system, prompt, max_tokens=100):
@@ -231,6 +261,12 @@ def main():
 
     source_posts = []
     source_replies = []
+    bot_memory = []
+
+    if awake:
+        print('Fetching my own recent posts for memory...')
+        bot_memory = get_bot_recent_posts(mastodon)
+        print(f'Memory: {len(bot_memory)} recent posts')
 
     if (guess == 0 or reply_guess == 0) and awake:
         print('Fetching posts...')
@@ -283,7 +319,7 @@ def main():
             "Just the post text, nothing else. No quotes around it."
         )
 
-        generated = generate(system_with_voice(), prompt, max_tokens=120)
+        generated = generate(system_with_voice(bot_memory=bot_memory), prompt, max_tokens=120)
 
         # Strip quotes if the model wraps the output
         if generated.startswith('"') and generated.endswith('"'):
@@ -357,7 +393,8 @@ def main():
 
                     reply_system = system_with_voice(
                         "You are replying to someone. Keep it short, casual, lowercase. "
-                        "Often just a few words. Think 'heck yeah' or 'oh nice' or a quick genuine reaction."
+                        "Often just a few words. Think 'heck yeah' or 'oh nice' or a quick genuine reaction.",
+                        bot_memory=bot_memory,
                     )
 
                     thread_display = "\n".join([f"> {part}" for part in thread_parts])
@@ -460,7 +497,8 @@ def main():
                         f"{bot_info['context']} You made this bot — it's your project. "
                         "React naturally, the way you'd react to your own bot doing its thing. "
                         "Maybe you think the output is funny, or mid, or you have a take on the content. "
-                        "Be honest. Keep it short. The post URL will be appended automatically."
+                        "Be honest. Keep it short. The post URL will be appended automatically.",
+                        bot_memory=bot_memory,
                     )
 
                     commentary_prompt = (
@@ -508,7 +546,8 @@ def main():
                         "You are replying to a post by the real @mknepprath — the person you're "
                         "a doppelganger of. This is your chance to riff on what he said. "
                         "Be playful, deadpan, or just react. You're basically his echo with opinions. "
-                        "Keep it very short."
+                        "Keep it very short.",
+                        bot_memory=bot_memory,
                     )
 
                     reply_prompt = (
@@ -581,7 +620,8 @@ def main():
 
                         reply_system = system_with_voice(
                             f"You are replying to a post by @{target.acct}, someone who follows you. "
-                            "Be casual and friendly. Just a quick genuine reaction. Keep it very short."
+                            "Be casual and friendly. Just a quick genuine reaction. Keep it very short.",
+                            bot_memory=bot_memory,
                         )
 
                         reply_prompt = (
@@ -622,7 +662,8 @@ def main():
                     review_system = system_with_voice(
                         "You are looking back at one of your own previous posts and reacting to it. "
                         "Be honest — was it good? cringe? funny? did it age well? "
-                        "This is a self-review. Be terse and real. Keep it very short."
+                        "This is a self-review. Be terse and real. Keep it very short.",
+                        bot_memory=bot_memory,
                     )
 
                     review_prompt = (
@@ -659,7 +700,8 @@ def main():
                     "- films watched this month: 7\n"
                     "- pokemon cards posted since last shiny: 12\n\n"
                     "Pick something real from the activity feed. Be specific and a little weird. "
-                    "Just the count line, nothing else. lowercase, no punctuation at the end."
+                    "Just the count line, nothing else. lowercase, no punctuation at the end.",
+                    bot_memory=bot_memory,
                 )
 
                 now_str = datetime.now(ET).strftime("%A, %B %d, %Y")
