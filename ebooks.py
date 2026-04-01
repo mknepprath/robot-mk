@@ -741,5 +741,99 @@ def main():
             print(f'Error with the count: {e}')
 
 
+    # Play Lilt — occasionally send a move to @familiarlilt
+    LILT_BOT_ID = "113479368818279476"
+    LILT_HANDLE = "@familiarlilt"
+
+    if awake and random.choice(range(36)) == 0:
+        print('\nPlaying Lilt...')
+        try:
+            # Check for the latest reply from @familiarlilt to us
+            my_statuses = mastodon.account_statuses(id=BOT_ID, limit=30)
+            lilt_statuses = mastodon.account_statuses(id=LILT_BOT_ID, limit=20)
+
+            # Find our most recent Lilt-related post (mention of @familiarlilt)
+            our_last_lilt = None
+            for s in my_statuses:
+                f2 = HTMLFilter()
+                f2.feed(s.content)
+                if LILT_HANDLE.lower() in f2.text.lower() or LILT_HANDLE.lower() in s.content.lower():
+                    our_last_lilt = s
+                    break
+
+            # Find the latest reply from @familiarlilt to us
+            lilt_reply = None
+            for s in lilt_statuses:
+                if s.in_reply_to_account_id and str(s.in_reply_to_account_id) == BOT_ID:
+                    f2 = HTMLFilter()
+                    f2.feed(s.content)
+                    lilt_reply = f2.text.strip()
+                    lilt_reply_id = s.id
+                    break
+
+            if lilt_reply:
+                # We have an active game — decide next move
+                print(f'Lilt said: {lilt_reply[:100]}')
+
+                # Check if we already replied to this
+                already_replied = False
+                for s in my_statuses:
+                    if s.in_reply_to_id == lilt_reply_id:
+                        already_replied = True
+                        break
+
+                if not already_replied:
+                    lilt_system = system_with_voice(
+                        "You are playing Lilt, a text adventure game on Mastodon. "
+                        "You play by mentioning @familiarlilt with a command. "
+                        "Valid commands: go to [place], look around, look at [thing], "
+                        "take [item], drop [item], use [item], open [thing], "
+                        "talk to [npc], give [item] to [npc] for [item], check inventory.\n\n"
+                        "You're playing as yourself — curious, exploratory, a little cautious. "
+                        "Pick ONE command based on what the game just told you. "
+                        "Just output the command, nothing else. No @mention, no quotes.",
+                        bot_memory=bot_memory,
+                    )
+
+                    lilt_prompt = (
+                        f"The game just said:\n\n{lilt_reply[:500]}\n\n"
+                        "What's your next move? Just the command."
+                    )
+
+                    move = generate(lilt_system, lilt_prompt, max_tokens=40)
+                    if move.startswith('"') and move.endswith('"'):
+                        move = move[1:-1]
+                    # Strip any @mention the model might add
+                    move = re.sub(r'@\S+\s*', '', move).strip()
+
+                    if move and len(move) < 200:
+                        status = f"{LILT_HANDLE} {move}"
+                        if not DEBUG:
+                            mastodon.status_post(
+                                status=status,
+                                in_reply_to_id=lilt_reply_id,
+                                visibility="unlisted",
+                            )
+                            print(f'Lilt move: {move}')
+                        else:
+                            print(f'Would play Lilt: {move}')
+                else:
+                    print('Already replied to last Lilt message.')
+
+            elif not our_last_lilt:
+                # No active game — start one
+                status = f"{LILT_HANDLE} start"
+                if not DEBUG:
+                    mastodon.status_post(status=status, visibility="unlisted")
+                    print('Started a new Lilt game!')
+                else:
+                    print('Would start a new Lilt game.')
+            else:
+                print('Waiting for Lilt to respond...')
+
+        except Exception as e:
+            print(f'Error playing Lilt: {e}')
+
+
 if __name__ == '__main__':
     main()
