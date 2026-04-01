@@ -745,7 +745,8 @@ def main():
     LILT_BOT_ID = "113479368818279476"
     LILT_HANDLE = "@familiarlilt"
 
-    if awake and random.choice(range(36)) == 0:
+    # Lilt is exempt from daily post cap — it's an e2e test
+    if awake:
         print('\nPlaying Lilt...')
         try:
             # Check for the latest reply from @familiarlilt to us
