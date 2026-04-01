@@ -242,6 +242,8 @@ def main():
     now_et = datetime.now(ET)
     current_hour = now_et.hour
 
+    is_april_fools = now_et.month == 4 and now_et.day == 1
+
     if not DEBUG:
         guess = random.choice(range(ODDS))
         reply_guess = random.choice(range(REPLY_ODDS))
@@ -284,6 +286,10 @@ def main():
         except Exception as e:
             print(f'Error checking daily cap: {e}')
 
+    # Guarantee at least one post on April Fools
+    if is_april_fools and posts_today == 0 and awake:
+        guess = 0
+
     if (guess == 0 or reply_guess == 0) and awake:
         print('Fetching posts...')
         max_id = None
@@ -300,9 +306,6 @@ def main():
 
     if guess == 0 and awake:
         print('\nGenerating post...')
-
-        # April Fools — let the bot come up with its own prank
-        is_april_fools = now_et.month == 4 and now_et.day == 1
 
         # Fetch activity feed for richer context
         print('Fetching activity feed...')
