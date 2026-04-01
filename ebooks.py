@@ -268,6 +268,22 @@ def main():
         bot_memory = get_bot_recent_posts(mastodon)
         print(f'Memory: {len(bot_memory)} recent posts')
 
+    # Daily post cap — count posts made today
+    posts_today = 0
+    if awake:
+        try:
+            today_start = now_et.replace(hour=0, minute=0, second=0, microsecond=0)
+            my_statuses = mastodon.account_statuses(id=BOT_ID, limit=20)
+            for s in my_statuses:
+                if s.created_at.replace(tzinfo=None) >= today_start.replace(tzinfo=None):
+                    posts_today += 1
+            print(f'Posts today: {posts_today}/{MAX_POSTS_PER_DAY}')
+            if posts_today >= MAX_POSTS_PER_DAY:
+                print('Hit daily post cap. Skipping all posting.')
+                return
+        except Exception as e:
+            print(f'Error checking daily cap: {e}')
+
     if (guess == 0 or reply_guess == 0) and awake:
         print('Fetching posts...')
         max_id = None
@@ -527,7 +543,7 @@ def main():
             print(f'Error with sibling bot commentary: {e}')
 
     # Occasionally reply to @mknepprath's own posts
-    if awake and random.choice(range(16)) == 0:
+    if awake and random.choice(range(36)) == 0:
         print('\nChecking if I should reply to @mknepprath...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
@@ -686,7 +702,7 @@ def main():
             print(f'Error reviewing post history: {e}')
 
     # The count — track an arbitrary thing with no context
-    if awake and random.choice(range(24)) == 0:
+    if awake and random.choice(range(48)) == 0:
         print('\nChecking the count...')
         try:
             activity_context = fetch_activity_feed()
