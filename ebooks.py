@@ -301,6 +301,9 @@ def main():
     if guess == 0 and awake:
         print('\nGenerating post...')
 
+        # April Fools — let the bot come up with its own prank
+        is_april_fools = now_et.month == 4 and now_et.day == 1
+
         # Fetch activity feed for richer context
         print('Fetching activity feed...')
         activity_context = fetch_activity_feed()
@@ -315,8 +318,7 @@ def main():
         time_context = now_et.strftime("%A, %B %d, %Y at %I:%M %p ET")
 
         activity_section = ""
-        if activity_context and random.choice(range(4)) == 0:
-            # Only include activity feed 25% of the time
+        if activity_context and (random.choice(range(4)) == 0 or is_april_fools):
             activity_section = (
                 f"Michael has been up to this stuff lately (background only):\n\n"
                 f"{activity_context}\n\n"
@@ -324,16 +326,31 @@ def main():
                 "A passing thought, not a review.\n\n"
             )
 
-        prompt = (
-            f"Current date and time: {time_context}\n\n"
-            f"{activity_section}"
-            f"Here are some of his recent Mastodon posts for context on what he's been talking about lately:\n\n"
-            f"{recent_section}\n\n"
-            "Write one new post in this exact voice. Match the tone, length, and style of "
-            "the archive posts in the system prompt. Be aware of the current date/time and "
-            "recent activity but don't force it. Many posts have nothing to do with current events.\n\n"
-            "Just the post text, nothing else. No quotes around it."
-        )
+        if is_april_fools:
+            prompt = (
+                f"Current date and time: {time_context}\n\n"
+                f"{activity_section}"
+                f"Here are some of his recent Mastodon posts for context:\n\n"
+                f"{recent_section}\n\n"
+                "It's April Fools' Day. Write a post that is a prank — something deadpan "
+                "and believable that sounds like a real announcement or life update, but is "
+                "actually absurd or fake. It should fool people for a few seconds before they "
+                "realize it's a joke. Stay in Michael's voice — lowercase, terse, dry. "
+                "Reference his real projects, interests, or recent activity to make it convincing. "
+                "Do NOT say 'april fools' or hint that it's a joke. Let people figure it out.\n\n"
+                "Just the post text, nothing else. No quotes around it."
+            )
+        else:
+            prompt = (
+                f"Current date and time: {time_context}\n\n"
+                f"{activity_section}"
+                f"Here are some of his recent Mastodon posts for context on what he's been talking about lately:\n\n"
+                f"{recent_section}\n\n"
+                "Write one new post in this exact voice. Match the tone, length, and style of "
+                "the archive posts in the system prompt. Be aware of the current date/time and "
+                "recent activity but don't force it. Many posts have nothing to do with current events.\n\n"
+                "Just the post text, nothing else. No quotes around it."
+            )
 
         generated = generate(system_with_voice(bot_memory=bot_memory), prompt, max_tokens=120)
 
