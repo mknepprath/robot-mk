@@ -563,7 +563,7 @@ def main():
             print(f'Error with sibling bot commentary: {e}')
 
     # Occasionally reply to @mknepprath's own posts
-    if awake and random.choice(range(36)) == 0:
+    if awake and random.choice(range(90)) == 0:
         print('\nChecking if I should reply to @mknepprath...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
@@ -607,7 +607,7 @@ def main():
             print(f'Error replying to @mknepprath: {e}')
 
     # Follow-back management: follow anyone who follows us, unfollow anyone who unfollowed
-    if awake and random.choice(range(6)) == 0:
+    if awake and random.choice(range(24)) == 0:
         print('\nManaging follows...')
         try:
             followers = mastodon.account_followers(id=BOT_ID, limit=80)
@@ -631,7 +631,7 @@ def main():
             print(f'Error managing follows: {e}')
 
     # Rarely reply to a follower's recent post (they followed us = consent)
-    if awake and random.choice(range(48)) == 0:
+    if awake and random.choice(range(120)) == 0:
         print('\nChecking followers timeline for something to reply to...')
         try:
             following = mastodon.account_following(id=BOT_ID, limit=80)
@@ -681,7 +681,7 @@ def main():
             print(f'Error replying to follower: {e}')
 
     # Rarely review own post history
-    if awake and random.choice(range(72)) == 0:
+    if awake and random.choice(range(150)) == 0:
         print('\nReviewing my own post history...')
         try:
             my_posts = mastodon.account_statuses(id=BOT_ID, limit=20, exclude_replies=True)
@@ -722,7 +722,7 @@ def main():
             print(f'Error reviewing post history: {e}')
 
     # The count — track an arbitrary thing with no context
-    if awake and random.choice(range(48)) == 0:
+    if awake and random.choice(range(120)) == 0:
         print('\nChecking the count...')
         try:
             activity_context = fetch_activity_feed()
