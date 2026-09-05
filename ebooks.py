@@ -721,46 +721,6 @@ def main():
         except Exception as e:
             print(f'Error reviewing post history: {e}')
 
-    # The count — track an arbitrary thing with no context
-    if awake and random.choice(range(120)) == 0:
-        print('\nChecking the count...')
-        try:
-            activity_context = fetch_activity_feed()
-            if activity_context:
-                count_system = system_with_voice(
-                    "You have an obsessive habit of counting arbitrary things based on "
-                    "Michael's recent activity. Pick something oddly specific to count and "
-                    "post the count with zero context. Examples of the format:\n"
-                    "- days since last hitchcock movie: 4\n"
-                    "- consecutive runs under 6 miles: 3\n"
-                    "- films watched this month: 7\n"
-                    "- pokemon cards posted since last shiny: 12\n\n"
-                    "Pick something real from the activity feed. Be specific and a little weird. "
-                    "Just the count line, nothing else. lowercase, no punctuation at the end.",
-                    bot_memory=bot_memory,
-                )
-
-                now_str = datetime.now(ET).strftime("%A, %B %d, %Y")
-                count_prompt = (
-                    f"Current date: {now_str}\n\n"
-                    f"Recent activity:\n{activity_context}\n\n"
-                    "Post one count. Just the text, nothing else."
-                )
-
-                count = generate(count_system, count_prompt, max_tokens=40)
-                if count.startswith('"') and count.endswith('"'):
-                    count = count[1:-1]
-
-                if count and len(count) < 200:
-                    if not DEBUG:
-                        mastodon.status_post(status=count)
-                        print(f'The count: {count}')
-                    else:
-                        print(f'Would post count: {count}')
-        except Exception as e:
-            print(f'Error with the count: {e}')
-
-
     # Play Lilt — occasionally send a move to @familiarlilt
     LILT_BOT_ID = "113479368818279476"
     LILT_HANDLE = "@familiarlilt"
