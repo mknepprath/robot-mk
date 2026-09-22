@@ -146,8 +146,33 @@ class HTMLFilter(HTMLParser):
         self.text += data
 
 
+# Stand-in first names for handles we don't have a real name for.
+FILLER_NAMES = ["Alex", "Jordan", "Sam", "Taylor", "Morgan", "Casey"]
+
+# Handles we know the person behind.
+KNOWN_NAMES = {"mknepprath": "Michael"}
+
+# Lookbehind keeps email addresses (bob@example.com) from matching.
+MENTION_PATTERN = re.compile(r"(?<![\w.])@(\w+)(?:@[\w.-]+)?")
+
+
+def replace_mentions(text):
+    """Swap @handles for readable first names so the post stays usable."""
+    seen = {}
+
+    def name_for(match):
+        handle = match.group(1).lower()
+        if handle in KNOWN_NAMES:
+            return KNOWN_NAMES[handle]
+        if handle not in seen:
+            seen[handle] = random.choice(FILLER_NAMES)
+        return seen[handle]
+
+    return MENTION_PATTERN.sub(name_for, text).strip()
+
+
 def filter_out(string, substr):
-    return [s for s in string if
+    return [replace_mentions(s) for s in string if
             not any(sub in s for sub in substr) and not s.startswith("@")]
 
 
@@ -314,7 +339,7 @@ def main():
             print(f'Got activity feed ({activity_context.count(chr(10)) + 1} items)')
 
         # Recent Mastodon posts (for recency context, not voice)
-        filtered = filter_out(source_posts, ["RT", "https://", "@"])
+        filtered = filter_out(source_posts, ["RT", "https://"])
         random.shuffle(filtered)
         recent_section = "\n".join([f"- {post}" for post in filtered[:10]])
 
@@ -423,7 +448,7 @@ def main():
                 print('Generating reply...\n')
 
                 if not DEBUG:
-                    filtered = filter_out(source_posts, ["RT", "https://", "@"])
+                    filtered = filter_out(source_posts, ["RT", "https://"])
                     random.shuffle(filtered)
                     previous_posts = "\n".join([f"- {post}" for post in filtered[:20]])
 
