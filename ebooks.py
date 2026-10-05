@@ -587,8 +587,8 @@ def main():
         except Exception as e:
             print(f'Error with sibling bot commentary: {e}')
 
-    # Occasionally reply to @mknepprath's own posts
-    if awake and random.choice(range(90)) == 0:
+    # Occasionally reply to @mknepprath's own posts (~1/2 weeks; was 90)
+    if awake and random.choice(range(270)) == 0:
         print('\nChecking if I should reply to @mknepprath...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
@@ -655,8 +655,8 @@ def main():
         except Exception as e:
             print(f'Error managing follows: {e}')
 
-    # Rarely reply to a follower's recent post (they followed us = consent)
-    if awake and random.choice(range(120)) == 0:
+    # Rarely reply to a follower's recent post (they followed us = consent; was 120)
+    if awake and random.choice(range(360)) == 0:
         print('\nChecking followers timeline for something to reply to...')
         try:
             following = mastodon.account_following(id=BOT_ID, limit=80)
