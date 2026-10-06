@@ -81,6 +81,20 @@ BAD examples (DO NOT write like this):
 
 ACTIVITY_URL = "https://mknepprath.com/api/v1/activity?max_results=30&min_rating=0"
 
+ROBOT_SOUNDS = [
+    "zorp",
+    "ZORP",
+    "zzzzz",
+    "beep",
+    "boop",
+    "beep boop",
+    "bzzzzt",
+    "...beep?",
+    "01001000",
+    "010010",
+    "01101000 01101001",
+]
+
 # Load voice samples from Twitter archive
 VOICE_SAMPLES = []
 try:
@@ -307,59 +321,63 @@ def main():
     if guess == 0 and awake:
         print('\nGenerating post...')
 
-        # Fetch activity feed for richer context
-        print('Fetching activity feed...')
-        activity_context = fetch_activity_feed()
-        if activity_context:
-            print(f'Got activity feed ({activity_context.count(chr(10)) + 1} items)')
-
-        # Recent Mastodon posts (for recency context, not voice)
-        filtered = filter_out(source_posts, ["RT", "https://", "@"])
-        random.shuffle(filtered)
-        recent_section = "\n".join([f"- {post}" for post in filtered[:10]])
-
-        time_context = now_et.strftime("%A, %B %d, %Y at %I:%M %p ET")
-
-        activity_section = ""
-        if activity_context and (random.choice(range(4)) == 0 or is_april_fools):
-            activity_section = (
-                f"Michael has been up to this stuff lately (background only):\n\n"
-                f"{activity_context}\n\n"
-                "You MAY reference one of these things in passing, but keep it subtle. "
-                "A passing thought, not a review.\n\n"
-            )
-
-        if is_april_fools:
-            prompt = (
-                f"Current date and time: {time_context}\n\n"
-                f"{activity_section}"
-                f"Here are some of his recent Mastodon posts for context:\n\n"
-                f"{recent_section}\n\n"
-                "It's April Fools' Day. Write a post that is a prank — something deadpan "
-                "and believable that sounds like a real announcement or life update, but is "
-                "actually absurd or fake. It should fool people for a few seconds before they "
-                "realize it's a joke. Stay in Michael's voice — lowercase, terse, dry. "
-                "Reference his real projects, interests, or recent activity to make it convincing. "
-                "Do NOT say 'april fools' or hint that it's a joke. Let people figure it out.\n\n"
-                "Just the post text, nothing else. No quotes around it."
-            )
+        # Every so often, just make a robot noise instead
+        if not is_april_fools and random.choice(range(ROBOT_SOUND_ODDS)) == 0:
+            generated = random.choice(ROBOT_SOUNDS)
         else:
-            prompt = (
-                f"Current date and time: {time_context}\n\n"
-                f"{activity_section}"
-                f"Here are some of his recent Mastodon posts for context on what he's been talking about lately:\n\n"
-                f"{recent_section}\n\n"
-                "Write one new post in this exact voice. Match the tone, length, and style of "
-                "the archive posts in the system prompt. Be aware of the current date/time and "
-                "recent activity but don't force it. Many posts have nothing to do with current events.\n\n"
-                "Just the post text, nothing else. No quotes around it."
-            )
+            # Fetch activity feed for richer context
+            print('Fetching activity feed...')
+            activity_context = fetch_activity_feed()
+            if activity_context:
+                print(f'Got activity feed ({activity_context.count(chr(10)) + 1} items)')
 
-        generated = generate(system_with_voice(bot_memory=bot_memory), prompt, max_tokens=120)
+            # Recent Mastodon posts (for recency context, not voice)
+            filtered = filter_out(source_posts, ["RT", "https://", "@"])
+            random.shuffle(filtered)
+            recent_section = "\n".join([f"- {post}" for post in filtered[:10]])
 
-        # Strip quotes if the model wraps the output
-        if generated.startswith('"') and generated.endswith('"'):
-            generated = generated[1:-1]
+            time_context = now_et.strftime("%A, %B %d, %Y at %I:%M %p ET")
+
+            activity_section = ""
+            if activity_context and (random.choice(range(4)) == 0 or is_april_fools):
+                activity_section = (
+                    f"Michael has been up to this stuff lately (background only):\n\n"
+                    f"{activity_context}\n\n"
+                    "You MAY reference one of these things in passing, but keep it subtle. "
+                    "A passing thought, not a review.\n\n"
+                )
+
+            if is_april_fools:
+                prompt = (
+                    f"Current date and time: {time_context}\n\n"
+                    f"{activity_section}"
+                    f"Here are some of his recent Mastodon posts for context:\n\n"
+                    f"{recent_section}\n\n"
+                    "It's April Fools' Day. Write a post that is a prank — something deadpan "
+                    "and believable that sounds like a real announcement or life update, but is "
+                    "actually absurd or fake. It should fool people for a few seconds before they "
+                    "realize it's a joke. Stay in Michael's voice — lowercase, terse, dry. "
+                    "Reference his real projects, interests, or recent activity to make it convincing. "
+                    "Do NOT say 'april fools' or hint that it's a joke. Let people figure it out.\n\n"
+                    "Just the post text, nothing else. No quotes around it."
+                )
+            else:
+                prompt = (
+                    f"Current date and time: {time_context}\n\n"
+                    f"{activity_section}"
+                    f"Here are some of his recent Mastodon posts for context on what he's been talking about lately:\n\n"
+                    f"{recent_section}\n\n"
+                    "Write one new post in this exact voice. Match the tone, length, and style of "
+                    "the archive posts in the system prompt. Be aware of the current date/time and "
+                    "recent activity but don't force it. Many posts have nothing to do with current events.\n\n"
+                    "Just the post text, nothing else. No quotes around it."
+                )
+
+            generated = generate(system_with_voice(bot_memory=bot_memory), prompt, max_tokens=120)
+
+            # Strip quotes if the model wraps the output
+            if generated.startswith('"') and generated.endswith('"'):
+                generated = generated[1:-1]
 
         print(f'Generated: {generated}')
 
@@ -563,7 +581,7 @@ def main():
             print(f'Error with sibling bot commentary: {e}')
 
     # Occasionally reply to @mknepprath's own posts
-    if awake and random.choice(range(36)) == 0:
+    if awake and random.choice(range(90)) == 0:
         print('\nChecking if I should reply to @mknepprath...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
@@ -607,7 +625,7 @@ def main():
             print(f'Error replying to @mknepprath: {e}')
 
     # Follow-back management: follow anyone who follows us, unfollow anyone who unfollowed
-    if awake and random.choice(range(6)) == 0:
+    if awake and random.choice(range(24)) == 0:
         print('\nManaging follows...')
         try:
             followers = mastodon.account_followers(id=BOT_ID, limit=80)
@@ -631,7 +649,7 @@ def main():
             print(f'Error managing follows: {e}')
 
     # Rarely reply to a follower's recent post (they followed us = consent)
-    if awake and random.choice(range(48)) == 0:
+    if awake and random.choice(range(120)) == 0:
         print('\nChecking followers timeline for something to reply to...')
         try:
             following = mastodon.account_following(id=BOT_ID, limit=80)
@@ -681,7 +699,7 @@ def main():
             print(f'Error replying to follower: {e}')
 
     # Rarely review own post history
-    if awake and random.choice(range(72)) == 0:
+    if awake and random.choice(range(150)) == 0:
         print('\nReviewing my own post history...')
         try:
             my_posts = mastodon.account_statuses(id=BOT_ID, limit=20, exclude_replies=True)
@@ -720,46 +738,6 @@ def main():
                             print(f'Would self-review "{old_text[:40]}": {review}')
         except Exception as e:
             print(f'Error reviewing post history: {e}')
-
-    # The count — track an arbitrary thing with no context
-    if awake and random.choice(range(48)) == 0:
-        print('\nChecking the count...')
-        try:
-            activity_context = fetch_activity_feed()
-            if activity_context:
-                count_system = system_with_voice(
-                    "You have an obsessive habit of counting arbitrary things based on "
-                    "Michael's recent activity. Pick something oddly specific to count and "
-                    "post the count with zero context. Examples of the format:\n"
-                    "- days since last hitchcock movie: 4\n"
-                    "- consecutive runs under 6 miles: 3\n"
-                    "- films watched this month: 7\n"
-                    "- pokemon cards posted since last shiny: 12\n\n"
-                    "Pick something real from the activity feed. Be specific and a little weird. "
-                    "Just the count line, nothing else. lowercase, no punctuation at the end.",
-                    bot_memory=bot_memory,
-                )
-
-                now_str = datetime.now(ET).strftime("%A, %B %d, %Y")
-                count_prompt = (
-                    f"Current date: {now_str}\n\n"
-                    f"Recent activity:\n{activity_context}\n\n"
-                    "Post one count. Just the text, nothing else."
-                )
-
-                count = generate(count_system, count_prompt, max_tokens=40)
-                if count.startswith('"') and count.endswith('"'):
-                    count = count[1:-1]
-
-                if count and len(count) < 200:
-                    if not DEBUG:
-                        mastodon.status_post(status=count)
-                        print(f'The count: {count}')
-                    else:
-                        print(f'Would post count: {count}')
-        except Exception as e:
-            print(f'Error with the count: {e}')
-
 
     # Play Lilt — occasionally send a move to @familiarlilt
     LILT_BOT_ID = "113479368818279476"
