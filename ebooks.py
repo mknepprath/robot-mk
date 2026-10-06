@@ -146,8 +146,33 @@ class HTMLFilter(HTMLParser):
         self.text += data
 
 
+# Stand-in first names for handles we don't have a real name for.
+FILLER_NAMES = ["Alex", "Jordan", "Sam", "Taylor", "Morgan", "Casey"]
+
+# Handles we know the person behind.
+KNOWN_NAMES = {"mknepprath": "Michael"}
+
+# Lookbehind keeps email addresses (bob@example.com) from matching.
+MENTION_PATTERN = re.compile(r"(?<![\w.])@(\w+)(?:@[\w.-]+)?")
+
+
+def replace_mentions(text):
+    """Swap @handles for readable first names so the post stays usable."""
+    seen = {}
+
+    def name_for(match):
+        handle = match.group(1).lower()
+        if handle in KNOWN_NAMES:
+            return KNOWN_NAMES[handle]
+        if handle not in seen:
+            seen[handle] = random.choice(FILLER_NAMES)
+        return seen[handle]
+
+    return MENTION_PATTERN.sub(name_for, text).strip()
+
+
 def filter_out(string, substr):
-    return [s for s in string if
+    return [replace_mentions(s) for s in string if
             not any(sub in s for sub in substr) and not s.startswith("@")]
 
 
@@ -314,7 +339,7 @@ def main():
             print(f'Got activity feed ({activity_context.count(chr(10)) + 1} items)')
 
         # Recent Mastodon posts (for recency context, not voice)
-        filtered = filter_out(source_posts, ["RT", "https://", "@"])
+        filtered = filter_out(source_posts, ["RT", "https://"])
         random.shuffle(filtered)
         recent_section = "\n".join([f"- {post}" for post in filtered[:10]])
 
@@ -423,7 +448,7 @@ def main():
                 print('Generating reply...\n')
 
                 if not DEBUG:
-                    filtered = filter_out(source_posts, ["RT", "https://", "@"])
+                    filtered = filter_out(source_posts, ["RT", "https://"])
                     random.shuffle(filtered)
                     previous_posts = "\n".join([f"- {post}" for post in filtered[:20]])
 
@@ -562,8 +587,8 @@ def main():
         except Exception as e:
             print(f'Error with sibling bot commentary: {e}')
 
-    # Occasionally reply to @mknepprath's own posts
-    if awake and random.choice(range(36)) == 0:
+    # Occasionally reply to @mknepprath's own posts (~1/2 weeks; was 90)
+    if awake and random.choice(range(270)) == 0:
         print('\nChecking if I should reply to @mknepprath...')
         try:
             recent = mastodon.account_statuses(id=SOURCE_ID, limit=5, exclude_replies=True)
@@ -607,7 +632,7 @@ def main():
             print(f'Error replying to @mknepprath: {e}')
 
     # Follow-back management: follow anyone who follows us, unfollow anyone who unfollowed
-    if awake and random.choice(range(6)) == 0:
+    if awake and random.choice(range(24)) == 0:
         print('\nManaging follows...')
         try:
             followers = mastodon.account_followers(id=BOT_ID, limit=80)
@@ -630,8 +655,8 @@ def main():
         except Exception as e:
             print(f'Error managing follows: {e}')
 
-    # Rarely reply to a follower's recent post (they followed us = consent)
-    if awake and random.choice(range(48)) == 0:
+    # Rarely reply to a follower's recent post (they followed us = consent; was 120)
+    if awake and random.choice(range(360)) == 0:
         print('\nChecking followers timeline for something to reply to...')
         try:
             following = mastodon.account_following(id=BOT_ID, limit=80)
@@ -681,7 +706,7 @@ def main():
             print(f'Error replying to follower: {e}')
 
     # Rarely review own post history
-    if awake and random.choice(range(72)) == 0:
+    if awake and random.choice(range(150)) == 0:
         print('\nReviewing my own post history...')
         try:
             my_posts = mastodon.account_statuses(id=BOT_ID, limit=20, exclude_replies=True)
@@ -720,46 +745,6 @@ def main():
                             print(f'Would self-review "{old_text[:40]}": {review}')
         except Exception as e:
             print(f'Error reviewing post history: {e}')
-
-    # The count — track an arbitrary thing with no context
-    if awake and random.choice(range(48)) == 0:
-        print('\nChecking the count...')
-        try:
-            activity_context = fetch_activity_feed()
-            if activity_context:
-                count_system = system_with_voice(
-                    "You have an obsessive habit of counting arbitrary things based on "
-                    "Michael's recent activity. Pick something oddly specific to count and "
-                    "post the count with zero context. Examples of the format:\n"
-                    "- days since last hitchcock movie: 4\n"
-                    "- consecutive runs under 6 miles: 3\n"
-                    "- films watched this month: 7\n"
-                    "- pokemon cards posted since last shiny: 12\n\n"
-                    "Pick something real from the activity feed. Be specific and a little weird. "
-                    "Just the count line, nothing else. lowercase, no punctuation at the end.",
-                    bot_memory=bot_memory,
-                )
-
-                now_str = datetime.now(ET).strftime("%A, %B %d, %Y")
-                count_prompt = (
-                    f"Current date: {now_str}\n\n"
-                    f"Recent activity:\n{activity_context}\n\n"
-                    "Post one count. Just the text, nothing else."
-                )
-
-                count = generate(count_system, count_prompt, max_tokens=40)
-                if count.startswith('"') and count.endswith('"'):
-                    count = count[1:-1]
-
-                if count and len(count) < 200:
-                    if not DEBUG:
-                        mastodon.status_post(status=count)
-                        print(f'The count: {count}')
-                    else:
-                        print(f'Would post count: {count}')
-        except Exception as e:
-            print(f'Error with the count: {e}')
-
 
     # Play Lilt — occasionally send a move to @familiarlilt
     LILT_BOT_ID = "113479368818279476"

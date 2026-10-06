@@ -3,11 +3,11 @@ Local settings for @robot_mk.
 """
 
 SOURCE_ID = "231610"  # @mknepprath@mastodon.social
-ODDS = 18  # ~1 in 18 per invocation (runs hourly = ~1 post/day)
-FAVE_ODDS = 3  # favorite mentions often
-REPLY_ODDS = 3  # reply to mentions sometimes
-BOOST_ODDS = 16  # rarely boost @mknepprath's posts
-MAX_POSTS_PER_DAY = 3  # hard cap on total posts (all types combined)
+ODDS = 48  # ~1 in 48 per awake invocation (runs hourly = ~2 posts/week)
+FAVE_ODDS = 8  # favorite mentions occasionally
+REPLY_ODDS = 30  # reply to mentions sparingly (~0.5/day at most; was 10, read as a reply guy)
+BOOST_ODDS = 70  # rarely boost @mknepprath / sibling bots (~1-2/week each)
+MAX_POSTS_PER_DAY = 2  # hard cap on total posts (all types combined)
 DEBUG = False  # Set this to False to start posting live
 BOT_ACCOUNT = '@robot_mk@mastodon.social'
 BOT_ID = "109795650318013893"
